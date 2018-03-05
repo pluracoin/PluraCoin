@@ -90,6 +90,8 @@ cmake -G "Visual Studio 12 Win64" ..
 And then do Build.
 Good luck!
 
+---
+
 ### Building for Android on Linux
 
 Set up the 32 bit toolchain
