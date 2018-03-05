@@ -22,7 +22,6 @@ Ubuntu 16.04 LTS already comes with Git preinstalled. To check if you really hav
 
 ````
 git --version
-
 ````
 
 You should get response like 
@@ -38,14 +37,19 @@ sudo apt-get install git -y
 ````
 
 
-Now clone the PluraCoin with Git to your home directory:
+Now clone the PluraCoin with Git to your home directory (or wherever you want):
 
 ````
-
+cd ~
+git clone https://github.com/pluracoin/PluraCoin.git
 ````
 
+To build PluraCoin, change to a directory where this file is located, and run `make`. The resulting executables can be found in `build/release/src`.
 
-To build, change to a directory where this file is located, and run `make`. The resulting executables can be found in `build/release/src`.
+````
+cd PluraCoin
+make
+````
 
 **Advanced options:**
 
