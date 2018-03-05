@@ -67,7 +67,7 @@ cd build/release/src
 ./pluracoind
 ````
 
-Wait for sync and you're done !
+Wait for blockchain sync and you're done !
 
 More info about daemon, wallet and simplewallet can be found in Wiki https://github.com/pluracoin/PluraCoin/wiki
 
