@@ -1,4 +1,4 @@
-The PluraCOIN (PLURA) is a anonymous cryptocurrency and privacy centric with opaque and more analysis resistant blockchain.
+The PluraCoin (PLURA) is a anonymous cryptocurrency and privacy centric with opaque and more analysis resistant blockchain.
 
 ## Building PluraCoin 
 
@@ -17,6 +17,33 @@ You may download them from:
 ````
 sudo apt-get install build-essential cmake libboost-all-dev -y
 ````
+
+Ubuntu 16.04 LTS already comes with Git preinstalled. To check if you really have Git installed type:
+
+````
+git --version
+
+````
+
+You should get response like 
+
+````
+git version 2.7.4
+````
+
+If Git is not found then install it:
+
+````
+sudo apt-get install git -y
+````
+
+
+Now clone the PluraCoin with Git to your home directory:
+
+````
+
+````
+
 
 To build, change to a directory where this file is located, and run `make`. The resulting executables can be found in `build/release/src`.
 
