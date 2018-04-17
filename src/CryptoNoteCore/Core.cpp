@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers, The Pluracoin developers
+// Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers, The Karbowanec developers, The Pluracoin developers
 //
 // This file is part of Bytecoin.
 //
@@ -229,6 +229,51 @@ bool core::get_stat_info(core_stat_info& st_inf) {
   return true;
 }
 
+bool core::check_tx_mixin(const Transaction& tx) {
+  size_t inputIndex = 0;
+  for (const auto& txin : tx.inputs) {
+    assert(inputIndex < tx.signatures.size());
+    if (txin.type() == typeid(KeyInput)) {
+      uint64_t txMixin = boost::get<KeyInput>(txin).outputIndexes.size();
+      if (txMixin > CryptoNote::parameters::MAX_TX_MIXIN_SIZE && get_current_blockchain_height() > CryptoNote::parameters::UPGRADE_HEIGHT_V4) {
+        logger(ERROR) << "Transaction " << getObjectHash(tx) << " has too large mixin count, rejected";
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool core::check_tx_fee(const Transaction& tx, size_t blobSize, tx_verification_context& tvc) {
+	uint64_t inputs_amount = 0;
+	if (!get_inputs_money_amount(tx, inputs_amount)) {
+		tvc.m_verifivation_failed = true;
+		return false;
+	}
+
+	uint64_t outputs_amount = get_outs_money_amount(tx);
+
+	if (outputs_amount > inputs_amount) {
+		logger(DEBUGGING) << "transaction use more money then it has: use " << m_currency.formatAmount(outputs_amount) <<
+			", have " << m_currency.formatAmount(inputs_amount);
+		tvc.m_verifivation_failed = true;
+		return false;
+	}
+
+	Crypto::Hash h = NULL_HASH;
+	getObjectHash(tx, h, blobSize);
+	const uint64_t fee = inputs_amount - outputs_amount;
+	bool isFusionTransaction = fee == 0 && m_currency.isFusionTransaction(tx, blobSize);
+	if (!isFusionTransaction && fee < m_currency.minimumFee()) {
+		logger(DEBUGGING) << "transaction fee is not enough: " << m_currency.formatAmount(fee) <<
+			", minimum fee: " << m_currency.formatAmount(m_currency.minimumFee());
+		tvc.m_verifivation_failed = true;
+		tvc.m_tx_fee_too_small = true;
+		return false;
+	}
+
+	return true;
+}
 
 bool core::check_tx_semantic(const Transaction& tx, bool keeped_by_block) {
   if (!tx.inputs.size()) {
@@ -363,12 +408,14 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
     } else if (b.majorVersion >= BLOCK_MAJOR_VERSION_2) {
       if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_3) == UpgradeDetectorBase::UNDEF_HEIGHT) {
         b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_2 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
+      } else if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_4) == UpgradeDetectorBase::UNDEF_HEIGHT) {
+        b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_3 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
       } else {
         b.minorVersion = BLOCK_MINOR_VERSION_0;
       }
 
       b.parentBlock.majorVersion = BLOCK_MAJOR_VERSION_1;
-      b.parentBlock.majorVersion = BLOCK_MINOR_VERSION_0;
+      b.parentBlock.minorVersion = BLOCK_MINOR_VERSION_0;
       b.parentBlock.transactionCount = 1;
       TransactionExtraMergeMiningTag mm_tag = boost::value_initialized<decltype(mm_tag)>();
 
@@ -1004,6 +1051,20 @@ bool core::handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& 
     logger(INFO) << "WRONG TRANSACTION BLOB, Failed to check tx " << txHash << " syntax, rejected";
     tvc.m_verifivation_failed = true;
     return false;
+  }
+
+  // is in checkpoint zone
+  if (!m_blockchain.isInCheckpointZone(get_current_blockchain_height())) {
+	  if (!check_tx_fee(tx, blobSize, tvc)) {
+		  tvc.m_verifivation_failed = true;
+		  return false;
+	  }
+
+	  if (!check_tx_mixin(tx)) {
+		  logger(INFO) << "Transaction verification failed: mixin count for transaction " << txHash << " is too large, rejected";
+		  tvc.m_verifivation_failed = true;
+		  return false;
+	  }
   }
 
   if (!check_tx_semantic(tx, keptByBlock)) {

@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 // Copyright(c) 2014 - 2017 XDN - project developers
-// Copyright(c) 2018 The Plura developers
+// Copyright(c) 2018 The Karbo developers
 //
 // This file is part of Bytecoin.
 //
@@ -24,6 +24,7 @@
 #include <boost/program_options.hpp>
 
 #include "Logging/ILogger.h"
+#include "SimpleWallet/PasswordContainer.cpp"
 
 namespace po = boost::program_options;
 
@@ -46,7 +47,7 @@ Configuration::Configuration() {
 
 void Configuration::initOptions(boost::program_options::options_description& desc) {
   desc.add_options()
-      ("bind-address", po::value<std::string>()->default_value("0.0.0.0"), "payment service bind address")
+      ("bind-address", po::value<std::string>()->default_value("127.0.0.1"), "payment service bind address")
       ("bind-port", po::value<uint16_t>()->default_value(8070), "payment service bind port")
       ("rpc-user", po::value<std::string>(), "Username to use with the RPC server. If empty, no server authorization will be done")
       ("rpc-password", po::value<std::string>(), "Password to use with the RPC server. If empty, no server authorization will be done")
@@ -134,9 +135,15 @@ void Configuration::init(const boost::program_options::variables_map& options) {
   }
 
   if (!registerService && !unregisterService) {
-    if (containerFile.empty() || containerPassword.empty()) {
+    if (containerFile.empty() && containerPassword.empty()) {
       throw ConfigurationError("Both container-file and container-password parameters are required");
     }
+	if (containerPassword.empty()) {
+		if (pwd_container.read_password()) {
+			containerPassword = pwd_container.password();
+		}
+	}
+
   }
 }
 

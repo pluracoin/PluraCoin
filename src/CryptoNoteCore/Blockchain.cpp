@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
-// Copyright (c) 2016, The Pluracoin developers
+// Copyright (c) 2016, The Karbowanec developers
+// Copyright (c) 2018, The Pluracoin developers
 //
 // This file is part of Bytecoin.
 //
@@ -322,6 +323,7 @@ m_current_block_cumul_sz_limit(0),
 m_is_in_checkpoint_zone(false),
 m_upgradeDetectorV2(currency, m_blocks, BLOCK_MAJOR_VERSION_2, logger),
 m_upgradeDetectorV3(currency, m_blocks, BLOCK_MAJOR_VERSION_3, logger),
+m_upgradeDetectorV4(currency, m_blocks, BLOCK_MAJOR_VERSION_4, logger),
 m_checkpoints(logger),
 m_paymentIdIndex(blockchainIndexesEnabled),
 m_timestampIndex(blockchainIndexesEnabled),
@@ -472,7 +474,7 @@ bool Blockchain::init(const std::string& config_folder, bool load_existing) {
     rollbackBlockchainTo(lastValidCheckpointHeight);
   }
 
-  if (!m_upgradeDetectorV2.init() || !m_upgradeDetectorV3.init()) {
+  if (!m_upgradeDetectorV2.init() || !m_upgradeDetectorV3.init() || !m_upgradeDetectorV4.init()) {
     logger(ERROR, BRIGHT_RED) << "Failed to initialize upgrade detector";
     return false;
   }
@@ -492,8 +494,15 @@ bool Blockchain::init(const std::string& config_folder, bool load_existing) {
     rollbackBlockchainTo(upgradeHeight);
     reinitUpgradeDetectors = true;
   }
+  else if (!checkUpgradeHeight(m_upgradeDetectorV4)) {
+    uint32_t upgradeHeight = m_upgradeDetectorV4.upgradeHeight();
+    logger(WARNING, BRIGHT_YELLOW) << "Invalid block version at " << upgradeHeight + 1 << ": real=" << static_cast<int>(m_blocks[upgradeHeight + 1].bl.majorVersion) <<
+      " expected=" << static_cast<int>(m_upgradeDetectorV4.targetVersion()) << ". Rollback blockchain to height=" << upgradeHeight;
+    rollbackBlockchainTo(upgradeHeight);
+    reinitUpgradeDetectors = true;
+  }
 
-  if (reinitUpgradeDetectors && (!m_upgradeDetectorV2.init() || !m_upgradeDetectorV3.init())) {
+  if (reinitUpgradeDetectors && (!m_upgradeDetectorV2.init() || !m_upgradeDetectorV3.init() || !m_upgradeDetectorV4.init())) {
     logger(ERROR, BRIGHT_RED) << "Failed to initialize upgrade detector";
     return false;
   }
@@ -694,8 +703,11 @@ difficulty_type Blockchain::getDifficultyForNextBlock() {
   std::vector<difficulty_type> commulative_difficulties;
   uint8_t BlockMajorVersion = getBlockMajorVersionForHeight(static_cast<uint32_t>(m_blocks.size()));
   size_t offset;
-  if (BlockMajorVersion >= BLOCK_MAJOR_VERSION_2) {
+  if (BlockMajorVersion == BLOCK_MAJOR_VERSION_2) {
 	 offset = m_blocks.size() - std::min(m_blocks.size(), static_cast<uint64_t>(m_currency.difficultyBlocksCount2()));
+  } 
+  else if (BlockMajorVersion >= BLOCK_MAJOR_VERSION_3) {
+     offset = m_blocks.size() - std::min(m_blocks.size(), static_cast<uint64_t>(m_currency.difficultyBlocksCount3()));
   }
   else {
 	 offset = m_blocks.size() - std::min(m_blocks.size(), static_cast<uint64_t>(m_currency.difficultyBlocksCount()));
@@ -721,7 +733,9 @@ uint64_t Blockchain::getCoinsInCirculation() {
 }
 
 uint8_t Blockchain::getBlockMajorVersionForHeight(uint32_t height) const {
-  if (height > m_upgradeDetectorV3.upgradeHeight()) {
+  if (height > m_upgradeDetectorV4.upgradeHeight()) {
+    return m_upgradeDetectorV4.targetVersion();
+  } else if (height > m_upgradeDetectorV3.upgradeHeight()) {
     return m_upgradeDetectorV3.targetVersion();
   } else if (height > m_upgradeDetectorV2.upgradeHeight()) {
     return m_upgradeDetectorV2.targetVersion();
@@ -835,7 +849,7 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 	std::vector<difficulty_type> commulative_difficulties;
 	uint8_t BlockMajorVersion = getBlockMajorVersionForHeight(static_cast<uint32_t>(m_blocks.size()));
 
-	if (BlockMajorVersion >= BLOCK_MAJOR_VERSION_2) {
+	if (BlockMajorVersion == BLOCK_MAJOR_VERSION_2) {
 
 		if (alt_chain.size() < m_currency.difficultyBlocksCount2()) {
 			std::lock_guard<decltype(m_blockchain_lock)> lk(m_blockchain_lock);
@@ -870,6 +884,47 @@ difficulty_type Blockchain::get_next_difficulty_for_alternative_chain(const std:
 				commulative_difficulties[max_i - count] = it->second.cumulative_difficulty;
 				count++;
 				if (count >= m_currency.difficultyBlocksCount2()) {
+					break;
+				}
+			}
+		}
+
+	}
+	else if (BlockMajorVersion >= BLOCK_MAJOR_VERSION_3) {
+
+		if (alt_chain.size() < m_currency.difficultyBlocksCount3()) {
+			std::lock_guard<decltype(m_blockchain_lock)> lk(m_blockchain_lock);
+			size_t main_chain_stop_offset = alt_chain.size() ? alt_chain.front()->second.height : bei.height;
+			size_t main_chain_count = m_currency.difficultyBlocksCount3() - std::min(m_currency.difficultyBlocksCount3(), alt_chain.size());
+			main_chain_count = std::min(main_chain_count, main_chain_stop_offset);
+			size_t main_chain_start_offset = main_chain_stop_offset - main_chain_count;
+
+			if (!main_chain_start_offset)
+				++main_chain_start_offset; //skip genesis block
+			for (; main_chain_start_offset < main_chain_stop_offset; ++main_chain_start_offset) {
+				timestamps.push_back(m_blocks[main_chain_start_offset].bl.timestamp);
+				commulative_difficulties.push_back(m_blocks[main_chain_start_offset].cumulative_difficulty);
+			}
+
+			if (!((alt_chain.size() + timestamps.size()) <= m_currency.difficultyBlocksCount3())) {
+				logger(ERROR, BRIGHT_RED) << "Internal error, alt_chain.size()[" << alt_chain.size() << "] + timestamps.size()[" << timestamps.size() <<
+					"] NOT <= m_currency.difficultyBlocksCount()[" << m_currency.difficultyBlocksCount3() << ']'; return false;
+			}
+			for (auto it : alt_chain) {
+				timestamps.push_back(it->second.bl.timestamp);
+				commulative_difficulties.push_back(it->second.cumulative_difficulty);
+			}
+		}
+		else {
+			timestamps.resize(std::min(alt_chain.size(), m_currency.difficultyBlocksCount3()));
+			commulative_difficulties.resize(std::min(alt_chain.size(), m_currency.difficultyBlocksCount3()));
+			size_t count = 0;
+			size_t max_i = timestamps.size() - 1;
+			BOOST_REVERSE_FOREACH(auto it, alt_chain) {
+				timestamps[max_i - count] = it->second.bl.timestamp;
+				commulative_difficulties[max_i - count] = it->second.cumulative_difficulty;
+				count++;
+				if (count >= m_currency.difficultyBlocksCount3()) {
 					break;
 				}
 			}
@@ -1534,6 +1589,7 @@ bool Blockchain::checkTransactionInputs(const Transaction& tx, const Crypto::Has
   for (const auto& txin : tx.inputs) {
     assert(inputIndex < tx.signatures.size());
     if (txin.type() == typeid(KeyInput)) {
+
       const KeyInput& in_to_key = boost::get<KeyInput>(txin);
       if (!(!in_to_key.outputIndexes.empty())) { logger(ERROR, BRIGHT_RED) << "empty in_to_key.outputIndexes in transaction with id " << getObjectHash(tx); return false; }
 
@@ -1654,7 +1710,7 @@ uint64_t Blockchain::get_adjusted_time() {
 bool Blockchain::check_block_timestamp_main(const Block& b) {
   if (b.timestamp > get_adjusted_time() + m_currency.blockFutureTimeLimit()) {
     logger(INFO, BRIGHT_WHITE) <<
-      "Timestamp of block with id: " << get_block_hash(b) << ", " << b.timestamp << ", bigger than adjusted time + 2 hours";
+      "Timestamp of block with id: " << get_block_hash(b) << ", " << b.timestamp << ", bigger than adjusted time + 28 min.";
     return false;
   }
 
@@ -1980,6 +2036,7 @@ bool Blockchain::pushBlock(const Block& blockData, const std::vector<Transaction
 
   m_upgradeDetectorV2.blockPushed();
   m_upgradeDetectorV3.blockPushed();
+  m_upgradeDetectorV4.blockPushed();
   update_next_comulative_size_limit();
 
   return true;
@@ -2016,6 +2073,7 @@ void Blockchain::popBlock() {
 
   m_upgradeDetectorV2.blockPopped();
   m_upgradeDetectorV3.blockPopped();
+  m_upgradeDetectorV4.blockPopped();
 }
 
 bool Blockchain::pushTransaction(BlockEntry& block, const Crypto::Hash& transactionHash, TransactionIndex transactionIndex) {
@@ -2506,6 +2564,10 @@ void Blockchain::sendMessage(const BlockchainMessage& message) {
 
 bool Blockchain::isBlockInMainChain(const Crypto::Hash& blockId) {
   return m_blockIndex.hasBlock(blockId);
+}
+
+bool Blockchain::isInCheckpointZone(const uint32_t height) {
+  return m_checkpoints.is_in_checkpoint_zone(height);
 }
 
 }

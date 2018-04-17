@@ -1,8 +1,8 @@
-// Copyright (c) 2017-2018, Plura developers
+// Copyright (c) 2017-2018, Karbo developers
 /*!
  *  file Ukrainian.h
  *
- *  Created by contributor Lastik, edited by Aiwe
+ *  Created by Karbovanets contributor Lastik, edited by Aiwe
  *  Based on 'Frequency list of Ukrainian language' by Volodymyr Vlad
  *  This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/.
  *  Copyright © 2013 Volodymyr Vlad
