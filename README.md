@@ -36,7 +36,7 @@ If Git is not found then install it:
 sudo apt-get install git -y
 ````
 
-Download existing blockchain to speed up initial synchronization
+Download existing blockchain to speed up initial synchronization from 
 https://blockchain.pluracoin.org/blockchain.zip
 and unzip it to folder ./pluracoin
 ````
