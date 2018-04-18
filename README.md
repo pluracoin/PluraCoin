@@ -38,11 +38,11 @@ sudo apt-get install git -y
 
 Download existing blockchain to speed up initial synchronization from 
 https://blockchain.pluracoin.org/blockchain.zip
-and unzip it to folder ./pluracoin
+and unzip it to folder .pluracoin
 ````
 cd ~
-mkdir ./pluracoin
-cd ./pluracoin
+mkdir .pluracoin
+cd .pluracoin
 wget https://blockchain.pluracoin.org/blockchain.zip
 unzip blockchain.zip
 rm blockchain.zip
