@@ -1942,7 +1942,7 @@ bool Blockchain::pushBlock(const Block& blockData, const std::vector<Transaction
       return false;
     }
   } else {
-    if (!m_currency.checkProofOfWork(m_cn_context, blockData, currentDifficulty, proof_of_work)) {
+    if (!m_currency.checkProofOfWork(m_cn_context, blockData, currentDifficulty, proof_of_work) && getCurrentBlockchainHeight() > CryptoNote::parameters::UPGRADE_HEIGHT_V4) {
       logger(INFO, BRIGHT_WHITE) <<
         "Block " << blockHash << ", has too weak proof of work: " << proof_of_work << ", expected difficulty: " << currentDifficulty;
       bvc.m_verifivation_failed = true;

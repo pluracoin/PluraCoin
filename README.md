@@ -36,6 +36,18 @@ If Git is not found then install it:
 sudo apt-get install git -y
 ````
 
+Download existing blockchain to speed up initial synchronization
+https://blockchain.pluracoin.org/blockchain.zip
+and unzip it to folder ./pluracoin
+````
+cd ~
+mkdir ./pluracoin
+cd ./pluracoin
+wget https://blockchain.pluracoin.org/blockchain.zip
+unzip blockchain.zip
+rm blockchain.zip
+
+````
 
 Now clone the PluraCoin with Git to your home directory (or wherever you want):
 
@@ -59,6 +71,7 @@ The resulting executables can be found in `build/release/src`.
 * Debug build: run `make build-debug`.
 * Test suite: run `make test-release` to run tests in addition to building. Running `make test-debug` will do the same to the debug version.
 * Building with Clang: it may be possible to use Clang instead of GCC, but this may not work everywhere. To build, run `export CC=clang CXX=clang++` before running `make`.
+
 
 Start daemon 
 
