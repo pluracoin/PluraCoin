@@ -145,7 +145,18 @@ struct CheckpointData {
   const char* blockId;
 };
 
-const std::initializer_list<CheckpointData> CHECKPOINTS = {   
+const std::initializer_list<CheckpointData> CHECKPOINTS = {
+	{3000,	"bec581b36c62e08ffd7520b7784366ec34b600edda6418a6893ef0fc7ecb8d91"},
+ 	{10000, "f199869dd20c764353585fbf061361c194ac289eb68b21c0bfb4d7c8d4492beb"},
+ 	{20000, "b1f574bfd11e67e64041791c45fab84b80ba18739e54022d0c1d09c74dd74fe4"},
+ 	{30000, "e6687632048c3db6214c433a18760d132bd656c928037aea8fd78b2cd9ebc388"},
+ 	{40000, "9dabc1aedf31fea10d556c953706348bb1144f9ee0a53f78f56385ef2015fb24"},
+ 	{50000, "d0457b4bcf6bcc4cb42d94271f5a5c40273f3fd9c12bc5f5c398ce4d69d0e4bf"},
+ 	{60000, "f88662c0f2b842ecbd4f57d53e7cd210d9dab9ebd91270ccbacc6de522b53427"},
+ 	{70000, "2f2706b936fee7bd46f93b0d529b7233675ac137b434415b0b1f74eee50fc44b"},
+ 	{80000, "3bae6e8ef6bb03a0d21b593188d48b8aa61f4fcddaeea7fab099ba3d9d59515f"},
+ 	{90000, "45fb3e70defa0c0e1a1074466f8a29563738fdf8b54daa0b756625700f0c6e90"},
+ 	{100000, "f17e875f4dd5b8e48f01c33f9420740e45ab279b4731365acbeb10e230209613"}
 };
 
 } // CryptoNote
