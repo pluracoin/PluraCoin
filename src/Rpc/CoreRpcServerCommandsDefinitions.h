@@ -43,6 +43,58 @@ struct STATUS_STRUCT {
   }
 };
 
+//new
+struct COMMAND_RPC_BAN_IP {
+  struct request {
+    std::string ip;
+
+    void serialize(ISerializer &s) {
+      KV_MEMBER(ip)
+    }
+  };
+
+  struct response {    
+    std::string status;
+
+    void serialize(ISerializer &s) {      
+      KV_MEMBER(status)
+    }
+  };
+};
+
+struct COMMAND_RPC_UNBAN_IP {
+  struct request {
+    std::string ip;
+
+    void serialize(ISerializer &s) {
+      KV_MEMBER(ip)
+    }
+  };
+
+  struct response {    
+    std::string status;
+
+    void serialize(ISerializer &s) {      
+      KV_MEMBER(status)
+    }
+  };
+};
+
+struct COMMAND_RPC_GET_BANNED_IPS {
+  typedef EMPTY_STRUCT request;
+
+  struct response {    
+    
+    std::string status;
+    std::vector<std::string> hosts;
+
+    void serialize(ISerializer &s) {      
+      KV_MEMBER(status)
+      KV_MEMBER(hosts)
+    }
+  };
+};
+
 struct COMMAND_RPC_GET_HEIGHT {
   typedef EMPTY_STRUCT request;
 

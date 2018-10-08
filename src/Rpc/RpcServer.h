@@ -39,6 +39,7 @@ public:
 
   typedef std::function<bool(RpcServer*, const HttpRequest& request, HttpResponse& response)> HandlerFunction;
   bool restrictRPC(const bool is_resctricted);
+  bool allowIpBan(const bool ip_ban_allowed);
   bool enableCors(const std::string domain);
   bool setFeeAddress(const std::string fee_address);
 
@@ -51,7 +52,7 @@ private:
   };
 
   typedef void (RpcServer::*HandlerPtr)(const HttpRequest& request, HttpResponse& response);
-  static std::unordered_map<std::string, RpcHandler<HandlerFunction>> s_handlers;
+  static std::unordered_map<std::string, RpcHandler<HandlerFunction>> s_handlers;  
 
   virtual void processRequest(const HttpRequest& request, HttpResponse& response) override;
   bool processJsonRpcRequest(const HttpRequest& request, HttpResponse& response);
@@ -77,6 +78,10 @@ private:
   bool on_get_fee_address(const COMMAND_RPC_GET_FEE_ADDRESS::request& req, COMMAND_RPC_GET_FEE_ADDRESS::response& res);
   bool on_get_peer_list(const COMMAND_RPC_GET_PEER_LIST::request& req, COMMAND_RPC_GET_PEER_LIST::response& res);
   bool on_get_payment_id(const COMMAND_RPC_GEN_PAYMENT_ID::request& req, COMMAND_RPC_GEN_PAYMENT_ID::response& res);
+  //new
+  bool on_ban_ip(const COMMAND_RPC_BAN_IP::request& req, COMMAND_RPC_BAN_IP::response& res);
+  bool on_unban_ip(const COMMAND_RPC_UNBAN_IP::request& req, COMMAND_RPC_UNBAN_IP::response& res);
+  bool on_get_banned_ips(const COMMAND_RPC_GET_BANNED_IPS::request& req, COMMAND_RPC_GET_BANNED_IPS::response& res);
   
   // json rpc
   bool on_getblockcount(const COMMAND_RPC_GETBLOCKCOUNT::request& req, COMMAND_RPC_GETBLOCKCOUNT::response& res);
@@ -105,6 +110,7 @@ private:
   NodeServer& m_p2p;
   const ICryptoNoteProtocolQuery& m_protocolQuery;
   bool m_restricted_rpc;
+  bool m_ip_ban_allowed;
   std::string m_cors_domain;
   std::string m_fee_address;
 };

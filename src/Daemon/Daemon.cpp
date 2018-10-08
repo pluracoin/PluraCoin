@@ -59,6 +59,7 @@ namespace
   const command_line::arg_descriptor<int>         arg_log_level   = {"log-level", "", 2}; // info level
   const command_line::arg_descriptor<bool>        arg_console     = {"no-console", "Disable daemon console commands"};
   const command_line::arg_descriptor<bool>        arg_restricted_rpc = {"restricted-rpc", "Restrict RPC to view only commands to prevent abuse"};
+  const command_line::arg_descriptor<bool>        arg_allow_ipban = {"allow-ip-ban", "Allow RPC to ban remote nodes. Do not enable on public IP!"};
   const command_line::arg_descriptor<bool>        arg_enable_blockchain_indexes = { "enable-blockchain-indexes", "Enable blockchain indexes", false };
   const command_line::arg_descriptor<bool>        arg_print_genesis_tx = { "print-genesis-tx", "Prints genesis' block tx hex to insert it to config and exits" };
   const command_line::arg_descriptor<std::string> arg_enable_cors = { "enable-cors", "Adds header 'Access-Control-Allow-Origin' to the daemon's RPC responses. Uses the value as domain. Use * for all", "" };
@@ -122,11 +123,14 @@ int main(int argc, char* argv[])
     command_line::add_arg(desc_cmd_sett, arg_log_level);
     command_line::add_arg(desc_cmd_sett, arg_console);
 	command_line::add_arg(desc_cmd_sett, arg_restricted_rpc);
+    //new
+    command_line::add_arg(desc_cmd_sett, arg_allow_ipban);
+
     command_line::add_arg(desc_cmd_sett, arg_testnet_on);
-	command_line::add_arg(desc_cmd_sett, arg_enable_cors);
-	command_line::add_arg(desc_cmd_sett, arg_set_fee_address);
-	command_line::add_arg(desc_cmd_sett, arg_enable_blockchain_indexes);
-	command_line::add_arg(desc_cmd_sett, arg_print_genesis_tx);
+  	command_line::add_arg(desc_cmd_sett, arg_enable_cors);
+  	command_line::add_arg(desc_cmd_sett, arg_set_fee_address);
+  	command_line::add_arg(desc_cmd_sett, arg_enable_blockchain_indexes);
+  	command_line::add_arg(desc_cmd_sett, arg_print_genesis_tx);
 
     RpcServerConfig::initOptions(desc_cmd_sett);
     CoreConfig::initOptions(desc_cmd_sett);
@@ -282,9 +286,12 @@ int main(int argc, char* argv[])
 
     logger(INFO) << "Starting core rpc server on address " << rpcConfig.getBindAddress();
     rpcServer.start(rpcConfig.bindIp, rpcConfig.bindPort);
-	rpcServer.restrictRPC(command_line::get_arg(vm, arg_restricted_rpc));
-	rpcServer.enableCors(command_line::get_arg(vm, arg_enable_cors));
-	rpcServer.setFeeAddress(command_line::get_arg(vm, arg_set_fee_address));
+  	rpcServer.restrictRPC(command_line::get_arg(vm, arg_restricted_rpc));
+    //new
+    rpcServer.allowIpBan(command_line::get_arg(vm, arg_allow_ipban));
+  	
+    rpcServer.enableCors(command_line::get_arg(vm, arg_enable_cors));
+  	rpcServer.setFeeAddress(command_line::get_arg(vm, arg_set_fee_address));
     logger(INFO) << "Core rpc server started ok";
 
     Tools::SignalHandler::install([&dch, &p2psrv] {

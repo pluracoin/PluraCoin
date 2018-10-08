@@ -104,6 +104,10 @@ std::unordered_map<std::string, RpcServer::RpcHandler<RpcServer::HandlerFunction
   { "/feeaddress", { jsonMethod<COMMAND_RPC_GET_FEE_ADDRESS>(&RpcServer::on_get_fee_address), true } },
   { "/peers", { jsonMethod<COMMAND_RPC_GET_PEER_LIST>(&RpcServer::on_get_peer_list), true } },
   { "/paymentid", { jsonMethod<COMMAND_RPC_GEN_PAYMENT_ID>(&RpcServer::on_get_payment_id), true } },
+  //new
+  { "/banip", { jsonMethod<COMMAND_RPC_BAN_IP>(&RpcServer::on_ban_ip), true } },
+  { "/unbanip", { jsonMethod<COMMAND_RPC_UNBAN_IP>(&RpcServer::on_unban_ip), true } },
+  { "/getbannedips", { jsonMethod<COMMAND_RPC_GET_BANNED_IPS>(&RpcServer::on_get_banned_ips), true } },
   
   // disabled in restricted rpc mode
   { "/start_mining", { jsonMethod<COMMAND_RPC_START_MINING>(&RpcServer::on_start_mining), false } },
@@ -198,6 +202,13 @@ bool RpcServer::processJsonRpcRequest(const HttpRequest& request, HttpResponse& 
 
 bool RpcServer::restrictRPC(const bool is_restricted) {
   m_restricted_rpc = is_restricted;
+  return true;
+}
+
+//new
+bool RpcServer::allowIpBan(const bool ip_ban_allowed) {
+  m_ip_ban_allowed = ip_ban_allowed;
+  if(m_ip_ban_allowed) logger(INFO, BRIGHT_RED) << "*** IP banning ENABLED. Do not enable on public IP! ***";
   return true;
 }
 
@@ -379,6 +390,65 @@ bool RpcServer::on_get_info(const COMMAND_RPC_GET_INFO::request& req, COMMAND_RP
   else {
 	  res.fee_address = m_fee_address;
   }
+  res.status = CORE_RPC_STATUS_OK;
+  return true;
+}
+
+//new
+bool RpcServer::on_ban_ip(const COMMAND_RPC_BAN_IP::request& req, COMMAND_RPC_BAN_IP::response& res) {
+  
+  time_t seconds = 86400*30;  //30 days
+  uint32_t ipnum;  
+  
+  if(!m_ip_ban_allowed) { //not allowed via cmd    
+    logger(INFO, BRIGHT_YELLOW) << "*** IP banning not enabled. Try to run daemon with --allow-ip-ban";    
+    return false;
+    }
+  else {    
+      ipnum = Common::stringToIpAddress(req.ip);             
+      if(ipnum) {
+        m_p2p.ban_host(ipnum, seconds);           
+        }
+      else {
+        logger(INFO, BRIGHT_YELLOW) << "Could not ban IP [" << req.ip <<"]";        
+        }      
+  }  
+  
+  res.status = CORE_RPC_STATUS_OK;
+
+  return true;
+}
+
+bool RpcServer::on_unban_ip(const COMMAND_RPC_UNBAN_IP::request& req, COMMAND_RPC_UNBAN_IP::response& res) {  
+  
+  uint32_t ipnum; 
+  
+  if(!m_ip_ban_allowed) { //not allowed via cmd    
+    logger(INFO, BRIGHT_YELLOW) << "*** IP banning not enabled. Try to run daemon with --allow-ip-ban";    
+    return false;
+    }
+  else {    
+      ipnum = Common::stringToIpAddress(req.ip);             
+      if(ipnum) {
+        m_p2p.unban_host(ipnum);
+        }
+      else {
+        logger(INFO, BRIGHT_YELLOW) << "Could not unban IP [" << req.ip <<"]";        
+        }      
+  }  
+  
+  res.status = CORE_RPC_STATUS_OK;
+
+  return true;
+}
+
+bool RpcServer::on_get_banned_ips(const COMMAND_RPC_GET_BANNED_IPS::request& req, COMMAND_RPC_GET_BANNED_IPS::response& res) {    
+
+  for (auto const& x : m_p2p.get_blocked_hosts()) {   
+    logger(INFO, BRIGHT_YELLOW) << Common::ipAddressToString(x.first);
+    res.hosts.push_back(Common::ipAddressToString(x.first));
+  }
+
   res.status = CORE_RPC_STATUS_OK;
   return true;
 }
