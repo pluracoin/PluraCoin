@@ -29,12 +29,15 @@ const size_t   CRYPTONOTE_MAX_BLOCK_BLOB_SIZE                = 500000000;
 const size_t   CRYPTONOTE_MAX_TX_SIZE                        = 1000000000;
 const uint64_t CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX       = 0x89; // addresses start with "P"
 const size_t   CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW          = 10;
+const size_t   CRYPTONOTE_TX_SPENDABLE_AGE                   = 6;
 const uint64_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT            = DIFFICULTY_TARGET * 7;
-
+const uint64_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT_V1         = DIFFICULTY_TARGET * 3;	//fork ready
 const size_t   BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW             = 60;
+const size_t   BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_V1          = 11;	//fork ready
 
 // MONEY_SUPPLY - total number coins to be generated
 const uint64_t MONEY_SUPPLY                                  = UINT64_C(10000000000000000000);
+const uint64_t COIN                                          = UINT64_C(1000000000000);
 const uint64_t TAIL_EMISSION_REWARD                          = UINT64_C(1000000000000);
 const uint64_t GENESIS_BLOCK_REWARD                          = UINT64_C(1000000000000000000);	//10% premine
 const size_t CRYPTONOTE_COIN_VERSION                         = 1;
@@ -48,9 +51,13 @@ const size_t   CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V1  = 100000;
 const size_t   CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE;
 const size_t   CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE        = 600;
 const size_t   CRYPTONOTE_DISPLAY_DECIMAL_POINT              = 10;
+
 const uint64_t MINIMUM_FEE                                   = UINT64_C(100000000);
+const uint64_t MAXIMUM_FEE                                   = UINT64_C(100000000);
 const uint64_t DEFAULT_DUST_THRESHOLD                        = UINT64_C(100000000);
+const uint64_t MIN_TX_MIXIN_SIZE                             = 2;
 const uint64_t MAX_TX_MIXIN_SIZE                             = 20;
+const uint64_t MAX_TRANSACTION_SIZE_LIMIT                    = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT / 4 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;	//fork ready
 
 const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY             = 24 * 60 * 60 / DIFFICULTY_TARGET;
 const size_t   DIFFICULTY_WINDOW                             = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY; // blocks
@@ -158,7 +165,8 @@ const std::initializer_list<CheckpointData> CHECKPOINTS = {
  	{90000, "45fb3e70defa0c0e1a1074466f8a29563738fdf8b54daa0b756625700f0c6e90"},
  	{100000, "f17e875f4dd5b8e48f01c33f9420740e45ab279b4731365acbeb10e230209613"},
 	{110000, "f50905a01d4706d3b69419b0b255da055c93d46a84689563a20b1609126a3597"},
-	{130000, "1f0d85bea1758ec7d347f3b72d71fa45b994a5afd77a74a656f65fa95858c716"}
+	{130000, "1f0d85bea1758ec7d347f3b72d71fa45b994a5afd77a74a656f65fa95858c716"},
+	{140000, "082e73ec314f08eec0df93de9cf549a8ac2fadc1cfb76a87e434298eb412d7ed"}
 };
 
 } // CryptoNote

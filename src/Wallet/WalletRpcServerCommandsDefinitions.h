@@ -71,6 +71,10 @@ using CryptoNote::ISerializer;
 			uint64_t unlock_time;
 			std::string payment_id;
 
+			request() :fee(0),
+					   mixin(0),
+					   unlock_time(0){}
+
 			void serialize(ISerializer& s)
 			{
 				KV_MEMBER(destinations)
@@ -83,10 +87,12 @@ using CryptoNote::ISerializer;
 		struct response
 		{
 			std::string tx_hash;
+			std::string tx_key;
 
 			void serialize(ISerializer& s)
 			{
 				KV_MEMBER(tx_hash)
+				KV_MEMBER(tx_key)
 			}
 		};
 	};
@@ -165,6 +171,7 @@ using CryptoNote::ISerializer;
 		uint64_t blockIndex;
 		uint64_t unlockTime;
 		uint64_t confirmations;
+		std::string txKey;
 
 		void serialize(ISerializer& s)
 		{
@@ -178,6 +185,7 @@ using CryptoNote::ISerializer;
 			KV_MEMBER(blockIndex)
 			KV_MEMBER(unlockTime)
 			KV_MEMBER(confirmations)
+			KV_MEMBER(txKey)
 		}
 	};
 
@@ -293,5 +301,117 @@ using CryptoNote::ISerializer;
 			}
 		};
 	};
+
+	/* Command: get_tx_key */
+	struct COMMAND_RPC_GET_TX_KEY
+	{
+		struct request
+		{
+			std::string tx_hash;
+
+			void serialize(ISerializer& s)
+			{
+				KV_MEMBER(tx_hash)
+			}
+		};
+		struct response
+		{
+			std::string tx_key;
+
+			void serialize(ISerializer& s)
+			{
+				KV_MEMBER(tx_key)
+			}
+		};
+	};
+
+	struct COMMAND_RPC_SIGN_MESSAGE
+	{
+		struct request
+		{
+			std::string message;
+ 
+			void serialize(ISerializer& s)
+			{
+				KV_MEMBER(message);
+			}
+		};
+
+		struct response
+		{
+			std::string signature;
+
+			void serialize(ISerializer& s)
+			{
+				KV_MEMBER(signature);
+			}
+		};
+	};
+
+	struct COMMAND_RPC_VERIFY_MESSAGE
+	{
+		struct request
+		{
+			std::string message;
+			std::string address;
+			std::string signature;
+
+			void serialize(ISerializer& s)
+			{
+				KV_MEMBER(message);
+				KV_MEMBER(address);
+				KV_MEMBER(signature);
+			}
+		};
+
+		struct response
+		{
+			bool good;
+ 
+			void serialize(ISerializer& s)
+			{
+				KV_MEMBER(good);
+			}
+		};
+	};
+
+	struct COMMAND_RPC_CHANGE_PASSWORD
+	{
+		struct request
+		{
+			std::string old_password;
+			std::string new_password;
+
+			void serialize(ISerializer& s)
+			{
+				KV_MEMBER(old_password);
+				KV_MEMBER(new_password);
+			}
+		};
+
+		struct response
+		{
+			bool password_changed;
+
+			void serialize(ISerializer& s)
+			{
+				KV_MEMBER(password_changed);
+			}
+		};
+	};
+
+	struct COMMAND_RPC_GET_OUTPUTS
+    {
+      typedef CryptoNote::EMPTY_STRUCT request;
+
+      struct response
+      {
+        size_t unlocked_outputs_count;
+
+        void serialize(ISerializer& s) {
+          KV_MEMBER(unlocked_outputs_count)
+        }
+      };
+    };
 
 }} //Tools::wallet_rpc

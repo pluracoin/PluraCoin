@@ -202,7 +202,9 @@ void serialize(Transaction& tx, ISerializer& serializer) {
   //TODO: make arrays without sizes
 //  serializer.beginArray(sigSize, "signatures");
   
-  if (serializer.type() == ISerializer::INPUT) {
+  //if (serializer.type() == ISerializer::INPUT) {
+  // ignore base transaction
+  if (serializer.type() == ISerializer::INPUT && !(sigSize == 1 && tx.inputs[0].type() == typeid(BaseInput))) {
     tx.signatures.resize(sigSize);
   }
 
@@ -377,7 +379,7 @@ void serialize(ParentBlockSerializer& pbs, ISerializer& serializer) {
 }
 
 void serializeBlockHeader(BlockHeader& header, ISerializer& serializer) {
-  serializer(header.majorVersion, "major_version");    
+  serializer(header.majorVersion, "major_version");
   if (header.majorVersion > BLOCK_MAJOR_VERSION_4) {
     throw std::runtime_error("Wrong major version");
   }
