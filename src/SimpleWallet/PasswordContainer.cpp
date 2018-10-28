@@ -101,7 +101,7 @@ namespace Tools
         r = read_from_tty(password1);
         if (r)
         {
-          std::cout << "confirm password: ";
+          std::cout << "Confirm password: ";
           r = read_from_tty(password2);
           if (r)
           {

@@ -586,7 +586,7 @@ namespace CryptoNote {
 
       for (auto it = m_transactions.begin(); it != m_transactions.end();) {
         uint64_t txAge = now - it->receiveTime;
-        bool remove = txAge > (it->keptByBlock ? m_currency.mempoolTxFromAltBlockLiveTime() : m_currency.mempoolTxLiveTime());
+        bool remove = txAge > (it->keptByBlock ? m_currency.mempoolTxFromAltBlockLiveTime() : m_currency.mempoolTxLiveTime());        
 
         if (remove) {
           logger(TRACE) << "Tx " << it->id << " removed from tx pool due to outdated, age: " << txAge;

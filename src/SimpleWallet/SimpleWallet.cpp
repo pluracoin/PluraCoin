@@ -378,7 +378,7 @@ std::string tryToOpenWalletOrLoadKeysOrThrow(LoggerRef& logger, std::unique_ptr<
     boost::system::error_code renameEc;
     boost::filesystem::rename(walletFile, walletFileName, renameEc);
     if (renameEc) {
-      throw std::runtime_error("failed to rename file '" + walletFile + "' to '" + walletFileName + "': " + renameEc.message());
+      throw std::runtime_error("Failed to rename file '" + walletFile + "' to '" + walletFileName + "': " + renameEc.message());
     }
 
     walletExists = true;
@@ -389,7 +389,7 @@ std::string tryToOpenWalletOrLoadKeysOrThrow(LoggerRef& logger, std::unique_ptr<
     std::ifstream walletFile;
     walletFile.open(walletFileName, std::ios_base::binary | std::ios_base::in);
     if (walletFile.fail()) {
-      throw std::runtime_error("error opening wallet file '" + walletFileName + "'");
+      throw std::runtime_error("Error opening wallet file '" + walletFileName + "'");
     }
 
     auto initError = initAndLoadWallet(*wallet, walletFile, password);
@@ -404,7 +404,7 @@ std::string tryToOpenWalletOrLoadKeysOrThrow(LoggerRef& logger, std::unique_ptr<
 
         initError = initAndLoadWallet(*wallet, ss, password);
         if (initError) {
-          throw std::runtime_error("failed to load wallet: " + initError.message());
+          throw std::runtime_error("Failed to load wallet: " + initError.message());
         }
 
         logger(INFO) << "Storing wallet...";
@@ -413,13 +413,13 @@ std::string tryToOpenWalletOrLoadKeysOrThrow(LoggerRef& logger, std::unique_ptr<
           CryptoNote::WalletHelper::storeWallet(*wallet, walletFileName);
         } catch (std::exception& e) {
           logger(ERROR, BRIGHT_RED) << "Failed to store wallet: " << e.what();
-          throw std::runtime_error("error saving wallet file '" + walletFileName + "'");
+          throw std::runtime_error("Error saving wallet file '" + walletFileName + "'");
         }
 
         logger(INFO, BRIGHT_GREEN) << "Stored ok";
         return walletFileName;
       } else { // no keys, wallet error loading
-        throw std::runtime_error("can't load wallet file '" + walletFileName + "', check password");
+        throw std::runtime_error("Can't load wallet file '" + walletFileName + "', check password");
       }
     } else { //new wallet ok 
       return walletFileName;
@@ -616,7 +616,7 @@ bool processServerFeeAddressResponse(const std::string& response, std::string& f
 
 std::string simple_wallet::get_commands_str() {
   std::stringstream ss;
-  ss << "Commands: " << ENDL;
+  ss << ENDL << "Commands: " << ENDL;
   std::string usage = m_consoleHandler.getUsage();
   boost::replace_all(usage, "\n", "\n  ");
   usage.insert(0, "  ");
@@ -965,7 +965,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 		}
 		catch (const std::exception& e)
 		{
-			fail_msg_writer() << "failed to load wallet: " << e.what();
+			fail_msg_writer() << "Failed to load wallet: " << e.what();
 			return false;
 		}
 
@@ -1001,7 +1001,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 
 		if (!new_wallet(walletFileName, pwd_container.password()))
 		{
-			logger(ERROR, BRIGHT_RED) << "account creation failed";
+			logger(ERROR, BRIGHT_RED) << "Account creation failed";
 			return false;
 		}
 
@@ -1053,7 +1053,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 
 		if (!new_wallet(private_spend_key, private_view_key, walletFileName, pwd_container.password()))
 		{
-			logger(ERROR, BRIGHT_RED) << "account creation failed";
+			logger(ERROR, BRIGHT_RED) << "Account creation failed";
 			return false;
 		}
 
@@ -1101,7 +1101,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 
 		if (!new_wallet(keys, walletFileName, pwd_container.password()))
 		{
-			logger(ERROR, BRIGHT_RED) << "account creation failed";
+			logger(ERROR, BRIGHT_RED) << "Account creation failed";
 			return false;
 		}
 
@@ -1174,7 +1174,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 
 		if (!new_tracking_wallet(keys, walletFileName, pwd_container.password()))
 		{
-			logger(ERROR, BRIGHT_RED) << "account creation failed";
+			logger(ERROR, BRIGHT_RED) << "Account creation failed";
 			return false;
 		}
 
@@ -1193,7 +1193,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
 		}
 		catch (const std::exception& e)
 		{
-			fail_msg_writer() << "failed to load wallet: " << e.what();
+			fail_msg_writer() << "Failed to load wallet: " << e.what();
 			return false;
 		}
 
@@ -1269,7 +1269,7 @@ bool simple_wallet::gen_wallet(const std::string &wallet_file, const std::string
 		m_initResultPromise.reset(nullptr);
 		if (initError)
 		{
-			fail_msg_writer() << "failed to generate new wallet: " << initError.message();
+			fail_msg_writer() << "Failed to generate new wallet: " << initError.message();
 			return false;
 		}
 
@@ -1279,7 +1279,7 @@ bool simple_wallet::gen_wallet(const std::string &wallet_file, const std::string
 		}
 		catch (std::exception& e)
 		{
-			fail_msg_writer() << "failed to save new wallet: " << e.what();
+			fail_msg_writer() << "Failed to save new wallet: " << e.what();
 			throw;
 		}
 
@@ -1292,7 +1292,7 @@ bool simple_wallet::gen_wallet(const std::string &wallet_file, const std::string
 	}
 	catch (const std::exception& e)
 	{
-		fail_msg_writer() << "failed to generate new wallet: " << e.what();
+		fail_msg_writer() << "Failed to generate new wallet: " << e.what();
 		return false;
 	}
 
@@ -1343,7 +1343,7 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
 		m_initResultPromise.reset(nullptr);
 		if (initError)
 		{
-			fail_msg_writer() << "failed to generate new wallet: " << initError.message();
+			fail_msg_writer() << "Failed to generate new wallet: " << initError.message();
 			return false;
 		}
 
@@ -1355,7 +1355,7 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
 		}
 		catch (std::exception& e)
 		{
-			fail_msg_writer() << "failed to save new wallet: " << e.what();
+			fail_msg_writer() << "Failed to save new wallet: " << e.what();
 			throw;
 		}
 
@@ -1368,7 +1368,7 @@ bool simple_wallet::new_wallet(const std::string &wallet_file, const std::string
 	}
 	catch (const std::exception& e)
 	{
-		fail_msg_writer() << "failed to generate new wallet: " << e.what();
+		fail_msg_writer() << "Failed to generate new wallet: " << e.what();
 		return false;
 	}
 
@@ -1418,14 +1418,14 @@ bool simple_wallet::new_wallet(Crypto::SecretKey &secret_key, Crypto::SecretKey 
     auto initError = f_initError.get();
     m_initResultPromise.reset(nullptr);
     if (initError) {
-      fail_msg_writer() << "failed to generate new wallet: " << initError.message();
+      fail_msg_writer() << "Failed to generate new wallet: " << initError.message();
       return false;
     }
 
     try {
       CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
     } catch (std::exception& e) {
-      fail_msg_writer() << "failed to save new wallet: " << e.what();
+      fail_msg_writer() << "Failed to save new wallet: " << e.what();
       throw;
     }
 
@@ -1436,7 +1436,7 @@ bool simple_wallet::new_wallet(Crypto::SecretKey &secret_key, Crypto::SecretKey 
       "Imported wallet: " << m_wallet->getAddress() << std::endl;
   }
   catch (const std::exception& e) {
-    fail_msg_writer() << "failed to import wallet: " << e.what();
+    fail_msg_writer() << "Failed to import wallet: " << e.what();
     return false;
   }
 
@@ -1465,7 +1465,7 @@ bool simple_wallet::new_wallet(AccountKeys &private_key, const std::string &wall
         auto initError = f_initError.get();
         m_initResultPromise.reset(nullptr);
         if (initError) {
-            fail_msg_writer() << "failed to generate new wallet: " << initError.message();
+            fail_msg_writer() << "Failed to generate new wallet: " << initError.message();
             return false;
         }
 
@@ -1473,7 +1473,7 @@ bool simple_wallet::new_wallet(AccountKeys &private_key, const std::string &wall
             CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
         }
         catch (std::exception& e) {
-            fail_msg_writer() << "failed to save new wallet: " << e.what();
+            fail_msg_writer() << "Failed to save new wallet: " << e.what();
             throw;
         }
 
@@ -1488,7 +1488,7 @@ bool simple_wallet::new_wallet(AccountKeys &private_key, const std::string &wall
         }
     }
     catch (const std::exception& e) {
-        fail_msg_writer() << "failed to import wallet: " << e.what();
+        fail_msg_writer() << "Failed to import wallet: " << e.what();
         return false;
     }
 
@@ -1517,7 +1517,7 @@ bool simple_wallet::new_tracking_wallet(AccountKeys &tracking_key, const std::st
         auto initError = f_initError.get();
         m_initResultPromise.reset(nullptr);
         if (initError) {
-            fail_msg_writer() << "failed to generate new wallet: " << initError.message();
+            fail_msg_writer() << "Failed to generate new wallet: " << initError.message();
             return false;
         }
 
@@ -1525,7 +1525,7 @@ bool simple_wallet::new_tracking_wallet(AccountKeys &tracking_key, const std::st
             CryptoNote::WalletHelper::storeWallet(*m_wallet, m_wallet_file);
         }
         catch (std::exception& e) {
-            fail_msg_writer() << "failed to save new wallet: " << e.what();
+            fail_msg_writer() << "Failed to save new wallet: " << e.what();
             throw;
         }
 
@@ -1538,7 +1538,7 @@ bool simple_wallet::new_tracking_wallet(AccountKeys &tracking_key, const std::st
         m_trackingWallet = true;
     }
     catch (const std::exception& e) {
-        fail_msg_writer() << "failed to import wallet: " << e.what();
+        fail_msg_writer() << "Failed to import wallet: " << e.what();
         return false;
     }
 
