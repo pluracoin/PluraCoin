@@ -221,7 +221,7 @@ bool core::handle_incoming_tx(const BinaryArray& tx_blob, tx_verification_contex
   tvc = boost::value_initialized<tx_verification_context>();
   //want to process all transactions sequentially
 
-  if (tx_blob.size() > m_currency.maxTxSize()) {
+  if (tx_blob.size() > m_currency.maxTransactionSizeLimit() && getCurrentBlockMajorVersion() >= BLOCK_MAJOR_VERSION_5) {
     logger(INFO) << "WRONG TRANSACTION BLOB, too big size " << tx_blob.size() << ", rejected";
     tvc.m_verification_failed = true;
     return false;
@@ -254,7 +254,7 @@ bool core::get_stat_info(core_stat_info& st_inf) {
   return true;
 }
 
-bool core::check_tx_mixin(const Transaction& tx) {
+bool core::check_tx_mixin(const Transaction& tx, uint32_t height) {
   size_t inputIndex = 0;
   for (const auto& txin : tx.inputs) {
     assert(inputIndex < tx.signatures.size());
@@ -430,17 +430,15 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
 
     if (b.majorVersion == BLOCK_MAJOR_VERSION_1) {
       b.minorVersion = m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_2) == UpgradeDetectorBase::UNDEF_HEIGHT ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
-    } else if (b.majorVersion >= BLOCK_MAJOR_VERSION_2) {
-      if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_3) == UpgradeDetectorBase::UNDEF_HEIGHT) {
+    } else if (b.majorVersion == BLOCK_MAJOR_VERSION_2 || b.majorVersion == BLOCK_MAJOR_VERSION_3 || b.majorVersion == BLOCK_MAJOR_VERSION_4) {
+      if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_4) == UpgradeDetectorBase::UNDEF_HEIGHT) {
         b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_2 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
-      } else if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_4) == UpgradeDetectorBase::UNDEF_HEIGHT) {
-        b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_3 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
       } else {
         b.minorVersion = BLOCK_MINOR_VERSION_0;
       }
 
       b.parentBlock.majorVersion = BLOCK_MAJOR_VERSION_1;
-      b.parentBlock.minorVersion = BLOCK_MINOR_VERSION_0;
+      b.parentBlock.majorVersion = BLOCK_MINOR_VERSION_0;
       b.parentBlock.transactionCount = 1;
       TransactionExtraMergeMiningTag mm_tag = boost::value_initialized<decltype(mm_tag)>();
 
@@ -448,6 +446,9 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
         logger(ERROR, BRIGHT_RED) << "Failed to append merge mining tag to extra of the parent block miner transaction";
         return false;
       }
+    }
+    else if (b.majorVersion >= BLOCK_MAJOR_VERSION_5) {
+      b.minorVersion = m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_5) == UpgradeDetectorBase::UNDEF_HEIGHT ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
     }
 
     b.previousBlockHash = get_tail_id();
@@ -1398,7 +1399,7 @@ bool core::handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& 
 
   // is in checkpoint zone
   if (!m_blockchain.isInCheckpointZone(get_current_blockchain_height())) {
-    if (blobSize > m_currency.maxTransactionSizeLimit()/* && getCurrentBlockMajorVersion() >= BLOCK_MAJOR_VERSION_4*/) {
+    if (blobSize > m_currency.maxTransactionSizeLimit() && getCurrentBlockMajorVersion() >= BLOCK_MAJOR_VERSION_5) {
       logger(INFO) << "Transaction verification failed: too big size " << blobSize << " of transaction " << txHash << ", rejected";
       tvc.m_verification_failed = true;
       return false;
@@ -1409,7 +1410,7 @@ bool core::handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& 
       return false;
     }
 
-    if (!check_tx_mixin(tx)) {
+    if (!check_tx_mixin(tx, height)) {
       logger(INFO) << "Transaction verification failed: mixin count for transaction " << txHash << " is too large, rejected";
       tvc.m_verification_failed = true;
       return false;

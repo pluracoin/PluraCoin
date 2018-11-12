@@ -70,7 +70,7 @@ public:
 
   void start(bool startThread = true, const std::string& prompt = "", Console::Color promptColor = Console::Color::Default);
   void stop();
-  void wait(); 
+  void wait();
   void pause();
   void unpause();
 

@@ -83,7 +83,7 @@ WalletTransactionSender::WalletTransactionSender(const Currency& currency, Walle
   m_isStoping(false),
   m_keys(keys),
   m_transferDetails(transfersContainer),
-  m_upperTransactionSizeLimit(parameters::CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT / 4 - m_currency.minerTxBlobReservedSize()) {
+  m_upperTransactionSizeLimit(m_currency.maxTransactionSizeLimit()) {
 }
 
 void WalletTransactionSender::stop() {
@@ -114,7 +114,7 @@ std::shared_ptr<WalletRequest> WalletTransactionSender::makeSendRequest(Transact
 
   std::shared_ptr<SendTransactionContext> context = std::make_shared<SendTransactionContext>();
 
-  context->foundMoney = selectTransfersToSend(neededMoney, 0 == mixIn, context->dustPolicy.dustThreshold, context->selectedTransfers);
+  context->foundMoney = selectTransfersToSend(neededMoney, 0 == mixIn, m_currency.defaultDustThreshold(), context->selectedTransfers);
   throwIf(context->foundMoney < neededMoney, error::WRONG_AMOUNT);
 
   transactionId = m_transactionsCache.addNewTransaction(neededMoney, fee, extra, transfers, unlockTimestamp);

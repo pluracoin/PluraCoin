@@ -76,9 +76,10 @@ namespace CryptoNote {
 		}
 
 		if (isTestnet()) {
-			m_upgradeHeightV2 = 0;
-			m_upgradeHeightV3 = static_cast<uint32_t>(-1);
-			m_upgradeHeightV4 = static_cast<uint32_t>(-1);
+			m_upgradeHeightV2 = 1;
+			m_upgradeHeightV3 = 2;
+			m_upgradeHeightV4 = 4;
+		    m_upgradeHeightV5 = 6;
 			m_blocksFileName = "testnet_" + m_blocksFileName;
 			m_blocksCacheFileName = "testnet_" + m_blocksCacheFileName;
 			m_blockIndexesFileName = "testnet_" + m_blockIndexesFileName;
@@ -138,6 +139,9 @@ namespace CryptoNote {
 		}
 		else if (majorVersion == BLOCK_MAJOR_VERSION_4) {
 			return m_upgradeHeightV4;
+		}
+        else if (majorVersion == BLOCK_MAJOR_VERSION_5) {        	
+			return m_upgradeHeightV5;
 		}
 		else {
 			return static_cast<uint32_t>(-1);
@@ -296,34 +300,43 @@ namespace CryptoNote {
 	}
 
 	bool Currency::isFusionTransaction(const std::vector<uint64_t>& inputsAmounts, const std::vector<uint64_t>& outputsAmounts, size_t size, uint32_t height) const {
-		if (size > fusionTxMaxSize()) {
+		if (height <= CryptoNote::parameters::UPGRADE_HEIGHT_V4 ? size > CryptoNote::parameters::CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT * 30 / 100 : size > fusionTxMaxSize()) {
+			logger(ERROR) << "Fusion transaction verification failed: size exceeded max allowed size.";
 			return false;
 		}
 
 		if (inputsAmounts.size() < fusionTxMinInputCount()) {
+			logger(ERROR) << "Fusion transaction verification failed: inputs count is less than minimum.";
 			return false;
 		}
 
 		if (inputsAmounts.size() < outputsAmounts.size() * fusionTxMinInOutCountRatio()) {
+			logger(ERROR) << "Fusion transaction verification failed: inputs to outputs count ratio is less than minimum.";
 			return false;
 		}
 
 		uint64_t inputAmount = 0;
-		for (auto amount : inputsAmounts) {		
-		if (amount < defaultDustThreshold()) {
-		//if (height < CryptoNote::parameters::UPGRADE_HEIGHT_V4 && amount < defaultDustThreshold()) {			
-				return false;
-			}
-
+		for (auto amount : inputsAmounts) {
+			if (height < CryptoNote::parameters::UPGRADE_HEIGHT_V5)
+				if (amount < defaultDustThreshold()) {
+					logger(ERROR) << "Fusion transaction verification failed: amount " << amount << " is less than dust threshold.";
+					return false;
+				}
 			inputAmount += amount;
 		}
 
 		std::vector<uint64_t> expectedOutputsAmounts;
 		expectedOutputsAmounts.reserve(outputsAmounts.size());
-		decomposeAmount(inputAmount, height < CryptoNote::parameters::UPGRADE_HEIGHT_V4 ? defaultDustThreshold() : UINT64_C(0), expectedOutputsAmounts);
+		decomposeAmount(inputAmount, height < CryptoNote::parameters::UPGRADE_HEIGHT_V5 ? defaultDustThreshold() : UINT64_C(0), expectedOutputsAmounts);
 		std::sort(expectedOutputsAmounts.begin(), expectedOutputsAmounts.end());
 
-		return expectedOutputsAmounts == outputsAmounts;
+		bool decompose = expectedOutputsAmounts == outputsAmounts;
+		if (!decompose) {
+			logger(ERROR) << "Fusion transaction verification failed: decomposed output amounts do not match expected.";
+			return false;
+		}
+
+		return true;
 	}
 
 	bool Currency::isFusionTransaction(const Transaction& transaction, size_t size, uint32_t height) const {
@@ -352,8 +365,7 @@ namespace CryptoNote {
 			return false;
 		}
 
-	//if (height < CryptoNote::parameters::UPGRADE_HEIGHT_V4 && amount < defaultDustThreshold()) {		
-	if (amount < defaultDustThreshold()) {
+		if (height < CryptoNote::parameters::UPGRADE_HEIGHT_V5 && amount < defaultDustThreshold()) {
 			return false;
 		}
 
@@ -474,13 +486,15 @@ namespace CryptoNote {
 		return ret;
 	}
 
-	difficulty_type Currency::nextDifficulty(uint8_t blockMajorVersion, std::vector<uint64_t> timestamps,
+	difficulty_type Currency::nextDifficulty(uint32_t height, uint8_t blockMajorVersion, std::vector<uint64_t> timestamps,
 		std::vector<difficulty_type> cumulativeDifficulties) const {
-		if (blockMajorVersion >= BLOCK_MAJOR_VERSION_4) {
-		//return nextDifficultyV4(blockMajorVersion, timestamps, cumulativeDifficulties);			
-		return nextDifficultyV4(timestamps, cumulativeDifficulties);
+		if (blockMajorVersion >= BLOCK_MAJOR_VERSION_5) {
+			return nextDifficultyV5(height, blockMajorVersion, timestamps, cumulativeDifficulties);
 		}
-		else if (blockMajorVersion >= BLOCK_MAJOR_VERSION_3) {
+        else if (blockMajorVersion == BLOCK_MAJOR_VERSION_4) {
+			return nextDifficultyV4(timestamps, cumulativeDifficulties);
+		}
+		else if (blockMajorVersion == BLOCK_MAJOR_VERSION_3) {
 			return nextDifficultyV3(timestamps, cumulativeDifficulties);
 		}
 		else if (blockMajorVersion == BLOCK_MAJOR_VERSION_2) {
@@ -707,16 +721,81 @@ namespace CryptoNote {
 			next_difficulty = 100000;
 		}
 
+		//logger(TRACE) << "Calculating next diff V4: " << next_difficulty;
+
 		return next_difficulty;
+	}
+
+	template <typename T>
+	inline T clamp(T lo, T v, T hi)
+	{
+		return v < lo ? lo : v > hi ? hi : v;
+	}
+
+	difficulty_type Currency::nextDifficultyV5(uint32_t height, uint8_t blockMajorVersion,
+		std::vector<std::uint64_t> timestamps, std::vector<difficulty_type> cumulativeDifficulties) const {
+
+		// LWMA-2 / LWMA-3 difficulty algorithm 
+		// Copyright (c) 2017-2018 Zawy, MIT License
+		// https://github.com/zawy12/difficulty-algorithms/issues/3
+		// with modifications by Ryo Currency developers
+
+		const int64_t  T = static_cast<int64_t>(m_difficultyTarget);
+		int64_t  N = difficultyBlocksCount3();
+		int64_t  L(0), ST, sum_3_ST(0);
+		uint64_t next_D, prev_D;
+
+		assert(timestamps.size() == cumulativeDifficulties.size() && timestamps.size() <= static_cast<uint64_t>(N + 1));
+
+		int64_t max_TS, prev_max_TS;
+		prev_max_TS = timestamps[0];
+		uint32_t lwma3_height = CryptoNote::parameters::UPGRADE_HEIGHT_V5;
+		
+		for (int64_t i = 1; i <= N; i++) {
+			if (height < lwma3_height) { // LWMA-2								
+				ST = clamp(-6 * T, int64_t(timestamps[i]) - int64_t(timestamps[i - 1]), 6 * T);				
+			}
+			else { // LWMA-3				
+				if (static_cast<int64_t>(timestamps[i]) > prev_max_TS) {
+					max_TS = timestamps[i];
+				}
+				else {
+					max_TS = prev_max_TS + 1;
+				}
+				ST = std::min(6 * T, max_TS - prev_max_TS);
+				prev_max_TS = max_TS;
+			}
+			L += ST * i;
+			if (i > N - 3) {
+				sum_3_ST += ST;
+			}
+		}
+
+		next_D = uint64_t((cumulativeDifficulties[N] - cumulativeDifficulties[0]) * T * (N + 1)) / uint64_t(2 * L);
+		next_D = (next_D * 99ull) / 100ull;
+
+		prev_D = cumulativeDifficulties[N] - cumulativeDifficulties[N - 1];				
+		next_D = clamp((uint64_t)(prev_D * 67ull / 100ull), next_D, (uint64_t)(prev_D * 150ull / 100ull));
+		if (sum_3_ST < (8 * T) / 10)
+		{
+			next_D = (prev_D * 110ull) / 100ull;
+		}
+
+		// minimum limit
+		if (next_D < 100000) {
+			next_D = 100000;
+		}		
+
+		return next_D;
 	}
 
 	bool Currency::checkProofOfWorkV1(Crypto::cn_context& context, const Block& block, difficulty_type currentDiffic,
 		Crypto::Hash& proofOfWork) const {
-		if (BLOCK_MAJOR_VERSION_1 != block.majorVersion) {
+		if (BLOCK_MAJOR_VERSION_2 == block.majorVersion || BLOCK_MAJOR_VERSION_3 == block.majorVersion || BLOCK_MAJOR_VERSION_4 == block.majorVersion) {
 			return false;
-		}
+		}		
 
-		if (!get_block_longhash(context, block, proofOfWork)) {
+		if (!get_block_longhash(context, block, proofOfWork)) {			
 			return false;
 		}
 
@@ -727,7 +806,7 @@ namespace CryptoNote {
 		Crypto::Hash& proofOfWork) const {
 		if (block.majorVersion < BLOCK_MAJOR_VERSION_2) {
 			return false;
-		}
+		}		
 
 		if (!get_block_longhash(context, block, proofOfWork)) {
 			return false;
@@ -767,6 +846,7 @@ namespace CryptoNote {
 	bool Currency::checkProofOfWork(Crypto::cn_context& context, const Block& block, difficulty_type currentDiffic, Crypto::Hash& proofOfWork) const {
 		switch (block.majorVersion) {
 		case BLOCK_MAJOR_VERSION_1:
+		case BLOCK_MAJOR_VERSION_5:
 			return checkProofOfWorkV1(context, block, currentDiffic, proofOfWork);
 
 		case BLOCK_MAJOR_VERSION_2:
@@ -856,6 +936,7 @@ namespace CryptoNote {
 		upgradeHeightV2(parameters::UPGRADE_HEIGHT_V2);
 		upgradeHeightV3(parameters::UPGRADE_HEIGHT_V3);
 		upgradeHeightV4(parameters::UPGRADE_HEIGHT_V4);
+		upgradeHeightV5(parameters::UPGRADE_HEIGHT_V5);
 
 		upgradeVotingThreshold(parameters::UPGRADE_VOTING_THRESHOLD);
 		upgradeVotingWindow(parameters::UPGRADE_VOTING_WINDOW);

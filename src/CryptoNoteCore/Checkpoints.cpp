@@ -1,4 +1,6 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
+// Copyright (c) 2018, The TurtleCoin developers
+// Copyright (c) 2018, The Karbo developers
 //
 // This file is part of Bytecoin.
 //
@@ -16,6 +18,7 @@
 // along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdlib>
+#include <fstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -25,9 +28,9 @@
 #include <sstream>
 #include <vector>
 #include <iterator>
-#include <fstream>
 
 #include "Checkpoints.h"
+#include "../CryptoNoteConfig.h"
 #include "Common/StringTools.h"
 #include "Common/DnsTools.h"
 
@@ -113,6 +116,15 @@ bool Checkpoints::is_alternative_block_allowed(uint32_t  blockchain_height,
   if (0 == block_height)
     return false;
 
+  if (block_height < blockchain_height - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
+  {
+    logger(Logging::WARNING, Logging::WHITE)
+      << "An attempt of too deep reorganization: "
+      << blockchain_height - block_height << ", BLOCK REJECTED";
+
+    return false;
+  }
+
   auto it = m_points.upper_bound(blockchain_height);
   // Is blockchain_height before the first checkpoint?
   if (it == m_points.begin())
@@ -134,16 +146,20 @@ std::vector<uint32_t> Checkpoints::getCheckpointHeights() const {
 }
 #ifndef __ANDROID__
 //---------------------------------------------------------------------------
-bool Checkpoints::load_checkpoints_from_dns()
-{
-  std::string domain("checkpoints.karbo.org");
+bool Checkpoints::load_checkpoints_from_dns(bool testnet)
+{ 
+  std::string domain("checkpoints.pluracoing.org");
+  if(testnet) std::string domain("testpoints.pluracoing.org");    
   std::vector<std::string>records;
+
+  logger(Logging::DEBUGGING) << "Fetching DNS checkpoint records from " << domain;
 
   if (!Common::fetch_dns_txt(domain, records)) {
     logger(Logging::INFO) << "Failed to lookup DNS checkpoint records from " << domain;
   }
 
   for (const auto& record : records) {
+    logger(Logging::INFO) << "DNS CHECKPOINT: " << record;
     uint32_t height;
     Crypto::Hash hash = NULL_HASH;
     std::stringstream ss;

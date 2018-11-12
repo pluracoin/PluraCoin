@@ -50,6 +50,8 @@ using Common::JsonValue;
 using namespace CryptoNote;
 using namespace Logging;
 
+bool is_testnet = false;
+
 namespace po = boost::program_options;
 
 namespace
@@ -205,6 +207,19 @@ int main(int argc, char* argv[])
       return 0;
     }
 
+                                      
+
+
+	std::cout <<	
+	"\n                                       \n"		
+  "██████╗ ██╗     ██╗   ██╗██████╗  █████╗ \n" 
+  "██╔══██╗██║     ██║   ██║██╔══██╗██╔══██╗\n" 
+  "██████╔╝██║     ██║   ██║██████╔╝███████║\n" 
+  "██╔═══╝ ██║     ██║   ██║██╔══██╗██╔══██║\n" 
+  "██║     ███████╗╚██████╔╝██║  ██║██║  ██║\n" 
+  "╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝\n" 
+	"                                         \n" << ENDL;
+
     logger(INFO) << "Module folder: " << argv[0];
 
     bool testnet_mode = command_line::get_arg(vm, arg_testnet_on);
@@ -233,13 +248,13 @@ int main(int argc, char* argv[])
 		}
 
 #ifndef __ANDROID__
-		checkpoints.load_checkpoints_from_dns();
+		checkpoints.load_checkpoints_from_dns(testnet_mode);
 #endif
 
 		bool manual_checkpoints = !command_line::get_arg(vm, arg_load_checkpoints).empty();
 
 		if (manual_checkpoints && !testnet_mode) {
-			logger(INFO) << "Loading Checkpoints from file...";
+			logger(INFO) << "Loading checkpoints from file...";
 			std::string checkpoints_file = command_line::get_arg(vm, arg_load_checkpoints);
 			bool results = checkpoints.load_checkpoints_from_file(checkpoints_file);
 			if (!results) {

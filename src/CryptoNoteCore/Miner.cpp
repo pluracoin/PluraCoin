@@ -72,7 +72,7 @@ namespace CryptoNote
 
     m_template = bl;
 
-    if (m_template.majorVersion >= BLOCK_MAJOR_VERSION_2) {
+    if (m_template.majorVersion == BLOCK_MAJOR_VERSION_2 || m_template.majorVersion == BLOCK_MAJOR_VERSION_3 || m_template.majorVersion == BLOCK_MAJOR_VERSION_4) {
       CryptoNote::TransactionExtraMergeMiningTag mm_tag;
       mm_tag.depth = 0;
       if (!CryptoNote::get_aux_block_header_hash(m_template, mm_tag.merkleRoot)) {
@@ -399,7 +399,7 @@ namespace CryptoNote
       b.nonce = nonce;
       Crypto::Hash h;
       if (!m_stop && !get_block_longhash(context, b, h)) {
-        logger(ERROR) << "Failed to get block long hash";
+        logger(ERROR) << "Failed to get block long hash *";
         m_stop = true;
       }
 
