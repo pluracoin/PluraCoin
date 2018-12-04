@@ -53,11 +53,17 @@ namespace CryptoNote {
   }
 
   std::ostream& HttpRequest::printHttpRequest(std::ostream& os) const {
-    os << "POST " << url << " HTTP/1.1\r\n";
-    auto host = headers.find("Host");
-    if (host == headers.end()) {
-      os << "Host: " << "127.0.0.1" << "\r\n";
+    std::string method = "POST";    
+
+    std::string host = "127.0.0.1";   
+
+    for (auto pair : headers) {
+      if(pair.first == "X-Method" && pair.second=="GET") method = "GET";
+      if(pair.first == "Host") host = pair.second;
     }
+    std::cout << "Method: " << method << "\r\n";    
+    os << method << " " << url << " HTTP/1.1\r\n";
+    os << "Host: " << host << "\r\n";    
 
     for (auto pair : headers) {
       os << pair.first << ": " << pair.second << "\r\n";

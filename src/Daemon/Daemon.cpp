@@ -24,6 +24,8 @@
 
 #include "DaemonCommandsHandler.h"
 
+#include "Rpc/HttpClient.h"
+
 #include "Common/SignalHandler.h"
 #include "Common/PathTools.h"
 #include "crypto/hash.h"
@@ -74,7 +76,10 @@ namespace
   const command_line::arg_descriptor<bool>        arg_disable_checkpoints = { "without-checkpoints", "Synchronize without checkpoints" };
 }
 
+//System::Dispatcher dispatcher;
+
 bool command_line_preprocessor(const boost::program_options::variables_map& vm, LoggerRef& logger);
+bool is_new_version(System::Dispatcher& dispatcher, LoggerRef& logger);
 void print_genesis_tx_hex(const po::variables_map& vm, LoggerManager& logManager) {
   CryptoNote::Transaction tx = CryptoNote::CurrencyBuilder(logManager).generateGenesisTransaction();
   std::string tx_hex = Common::toHex(CryptoNote::toBinaryArray(tx));
@@ -220,6 +225,13 @@ int main(int argc, char* argv[])
   "╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝\n" 
 	"                                         \n" << ENDL;
 
+    System::Dispatcher dispatcher;    
+    
+    if(is_new_version(dispatcher, logger)) {
+      //die      
+      return 1;
+      }    
+
     logger(INFO) << "Module folder: " << argv[0];
 
     bool testnet_mode = command_line::get_arg(vm, arg_testnet_on);
@@ -287,9 +299,7 @@ int main(int argc, char* argv[])
         throw std::runtime_error("Can't create directory: " + coreConfig.configFolder);
       }
     }
-
-    System::Dispatcher dispatcher;
-
+    
     CryptoNote::CryptoNoteProtocolHandler cprotocol(currency, dispatcher, ccore, nullptr, logManager);
     CryptoNote::NodeServer p2psrv(dispatcher, cprotocol, logManager);
     CryptoNote::RpcServer rpcServer(dispatcher, logManager, ccore, p2psrv, cprotocol);
@@ -402,4 +412,84 @@ bool command_line_preprocessor(const boost::program_options::variables_map &vm, 
   }
 
   return false;
+}
+
+
+
+bool is_new_version(System::Dispatcher& dispatcher, LoggerRef& logger) {
+  
+  HttpClient httpClient(dispatcher, "pluracoing.org", 80);
+
+  HttpRequest req;
+  HttpResponse res;
+
+  req.setUrl("/daemon_version.txt");
+  //try {    
+    req.addHeader("X-Method", "GET");
+    httpClient.request(req, res);    
+  /*}
+  catch (const std::exception& e) {  
+    std::cout  << res.getStatus();
+    std::cout << "Error connecting to the remote node: " << e.what();
+  }*/
+  std::string version_remote;
+
+  if (res.getStatus() != HttpResponse::STATUS_200) {    
+    logger(INFO) << "Could not check the latest version: HTTP Status : " + std::to_string(res.getStatus());
+    return false;
+    }
+  else {    
+
+    if(res.getBody().length()>3) {   
+
+      std::string version_local;
+      std::string vr;
+      std::string version_remote;
+      std::string url;
+
+      std::stringstream stream(res.getBody());
+      JsonValue json;
+      stream >> json;
+
+      auto rootIt = json.getObject().find("version");
+      if (rootIt == json.getObject().end()) {
+          return 0;
+          }
+      vr = rootIt->second.getString();
+
+      rootIt = json.getObject().find("url");
+      if (rootIt == json.getObject().end()) {
+          return 0;
+          }
+      url = rootIt->second.getString();
+      
+      std::remove_copy(vr.begin(), vr.end(), std::back_inserter(version_remote), '.');
+      
+      std::stringstream vl;
+      vl << PROJECT_VERSION << PROJECT_VERSION_BUILD_NO;
+      std::string vlt = vl.str();
+      
+      std::remove_copy(vlt.begin(), vlt.end(), std::back_inserter(version_local), '.');
+
+      if(std::stoi(version_local) < std::stoi(version_remote)) {
+        logger(INFO, BRIGHT_GREEN) << "***\r\nA new version " << vr << " is available. Please upgrade now.\r\n" << 
+        url << "\r\n***\r\n";
+        return true;
+        }
+      else if(std::stoi(version_local) == std::stoi(version_remote)) {
+        logger(INFO, BRIGHT_GREEN) << "***\r\nYou are using latest version.\r\n***\r\n";
+        return false;
+        } 
+      else if(std::stoi(version_local) > std::stoi(version_remote)) {
+        logger(INFO) << "***\r\nUnable to check for the latest version. Continuing ...\r\n***\r\n";
+        return false;
+        }
+
+      }
+      else {
+        logger(INFO) << "***\r\nUnable to check for the latest version. Continuing ...\r\n***\r\n";
+      }
+  }
+
+  return true;
 }
