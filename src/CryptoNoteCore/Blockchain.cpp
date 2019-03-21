@@ -439,11 +439,7 @@ bool Blockchain::init(const std::string& config_folder, bool load_existing) {
   if (load_existing && !m_blocks.empty()) {
     logger(INFO, BRIGHT_WHITE) << "Loading blockchain...";
     BlockCacheSerializer loader(*this, get_block_hash(m_blocks.back().bl), logger.getLogger());
-    loader.load(appendPath(config_folder, m_currency.blocksCacheFileName()));
-
-    //temp rollback
-    /*logger(ERROR, BRIGHT_RED) << "Blockchain rollback";
-    rollbackBlockchainTo(161170);*/
+    loader.load(appendPath(config_folder, m_currency.blocksCacheFileName()));    
 
     if (!loader.loaded()) {
       logger(WARNING, BRIGHT_YELLOW) << "No actual blockchain cache found, rebuilding internal structures...";
@@ -484,7 +480,7 @@ bool Blockchain::init(const std::string& config_folder, bool load_existing) {
   }
 
   if (!m_upgradeDetectorV2.init() || !m_upgradeDetectorV3.init() || !m_upgradeDetectorV4.init() || !m_upgradeDetectorV5.init()) {
-    logger(ERROR, BRIGHT_RED) << "Failed to initialize upgrade detector";
+    logger(ERROR, BRIGHT_RED) << "Failed to initialize upgrade detector. Trying self healing procedure.";
     return false;
   }
 
@@ -587,7 +583,7 @@ void Blockchain::rebuildCache() {
 bool Blockchain::storeCache() {
   std::lock_guard<decltype(m_blockchain_lock)> lk(m_blockchain_lock);
 
-  logger(INFO, BRIGHT_WHITE) << "Saving blockchain...";
+  logger(INFO, BRIGHT_WHITE) << "Saving blockchain at height " << m_blocks.size() - 1 << "...";
   BlockCacheSerializer ser(*this, getTailId(), logger.getLogger());
   if (!ser.save(appendPath(m_config_folder, m_currency.blocksCacheFileName()))) {
     logger(ERROR, BRIGHT_RED) << "Failed to save blockchain cache";
@@ -749,6 +745,10 @@ uint64_t Blockchain::getBlockTimestamp(uint32_t height) {
 
 uint64_t Blockchain::getMinimalFee(uint32_t height) {
 	std::lock_guard<decltype(m_blockchain_lock)> lk(m_blockchain_lock);
+
+	if (height == 0 || m_blocks.size() <= 1) {
+	    return 0;
+	}
 
 	if (height > m_blocks.size() - 1) {
 		height = m_blocks.size() - 1;
@@ -1066,6 +1066,12 @@ bool Blockchain::prevalidate_miner_transaction(const Block& b, uint32_t height) 
     return false;
   }
 
+  if (!(b.baseTransaction.signatures.empty())) {
+    logger(ERROR, BRIGHT_RED)
+      << "coinbase transaction in the block shouldn't have signatures";
+    return false;
+  }
+
   if (!(b.baseTransaction.inputs[0].type() == typeid(BaseInput))) {
     logger(ERROR, BRIGHT_RED)
       << "coinbase transaction in the block has the wrong type";
@@ -1275,8 +1281,8 @@ bool Blockchain::handle_alternative_block(const Block& b, const Crypto::Hash& id
 
     // Disable merged mining
     TransactionExtraMergeMiningTag mmTag;
-    if (getMergeMiningTagFromExtra(bei.bl.baseTransaction.extra, mmTag) && bei.height >= CryptoNote::parameters::UPGRADE_HEIGHT_V5) {
-      logger(ERROR, BRIGHT_RED) << "Merge mining tag was found in extra of miner transaction";
+    if (getMergeMiningTagFromExtra(bei.bl.baseTransaction.extra, mmTag) && bei.height > CryptoNote::parameters::DROP_MM_HEIGHT) {
+      logger(ERROR, BRIGHT_RED) << "handle_alternative_block failed - Merge mining tag was found in extra of miner transaction";
       return false;
     }
 
@@ -1537,6 +1543,13 @@ uint64_t Blockchain::blockDifficulty(size_t i) {
     return m_blocks[i].cumulative_difficulty;
 
   return m_blocks[i].cumulative_difficulty - m_blocks[i - 1].cumulative_difficulty;
+}
+
+uint64_t Blockchain::blockCumulativeDifficulty(size_t i) {
+  std::lock_guard<decltype(m_blockchain_lock)> lk(m_blockchain_lock);
+  if (!(i < m_blocks.size())) { logger(ERROR, BRIGHT_RED) << "wrong block index i = " << i << " at Blockchain::block_difficulty()"; return false; }
+
+  return m_blocks[i].cumulative_difficulty;
 }
 
 void Blockchain::print_blockchain(uint64_t start_index, uint64_t end_index) {
@@ -1869,7 +1882,7 @@ bool Blockchain::check_block_timestamp(std::vector<uint64_t> timestamps, const B
 }
 
 bool Blockchain::checkBlockVersion(const Block& b, const Crypto::Hash& blockHash) {
-  uint32_t height = get_block_height(b);  
+  uint32_t height = get_block_height(b);
   const uint8_t expectedBlockVersion = getBlockMajorVersionForHeight(height);
 
   logger(TRACE) << "******** Height: " << height << ", incoming version: " << static_cast<int>(b.majorVersion) << ", expected version: " << static_cast<int>(expectedBlockVersion);
@@ -2044,13 +2057,10 @@ bool Blockchain::pushBlock(const Block& blockData, const std::vector<Transaction
   }
 
   // Disable merged mining
-  uint32_t height = 0;
   TransactionExtraMergeMiningTag mmTag;
-  if (m_blockIndex.getBlockHeight(blockHash, height)) {
-    if (getMergeMiningTagFromExtra(blockData.baseTransaction.extra, mmTag) && height >= CryptoNote::parameters::UPGRADE_HEIGHT_V5) {
-      logger(ERROR, BRIGHT_RED) << "Merge mining tag was found in extra of miner transaction";
-      return false;
-    }
+  if (getMergeMiningTagFromExtra(blockData.baseTransaction.extra, mmTag) && getCurrentBlockchainHeight() > CryptoNote::parameters::DROP_MM_HEIGHT) {
+    logger(ERROR, BRIGHT_RED) << "PushBlock failed - Merge mining tag was found in extra of miner transaction";
+    return false;
   }
 
   if (blockData.previousBlockHash != getTailId()) {

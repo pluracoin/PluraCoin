@@ -34,11 +34,14 @@
 #include "Common/StringTools.h"
 #include "Common/DnsTools.h"
 
+//#include "P2p/NetNode.h"
+
 using namespace Logging;
 
 namespace CryptoNote {
 //---------------------------------------------------------------------------
 Checkpoints::Checkpoints(Logging::ILogger &log) : logger(log, "checkpoints") {}
+
 //---------------------------------------------------------------------------
 bool Checkpoints::add_checkpoint(uint32_t height, const std::string &hash_str) {
   Crypto::Hash h = NULL_HASH;
@@ -116,10 +119,9 @@ bool Checkpoints::is_alternative_block_allowed(uint32_t  blockchain_height,
   if (0 == block_height)
     return false;
 
-  if (block_height < blockchain_height - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW)
-  {
-    logger(Logging::WARNING, Logging::WHITE)
-      << "An attempt of too deep reorganization: "
+  if (block_height < blockchain_height - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW
+    && !is_in_checkpoint_zone(block_height)) {
+    logger(Logging::WARNING, Logging::WHITE) << "An attempt of too deep reorganization: "
       << blockchain_height - block_height << ", BLOCK REJECTED";
 
     return false;
@@ -159,7 +161,7 @@ bool Checkpoints::load_checkpoints_from_dns(bool testnet)
   }
 
   for (const auto& record : records) {
-    logger(Logging::INFO) << "DNS CHECKPOINT: " << record;
+    logger(Logging::DEBUGGING) << "DNS CHECKPOINT: " << record;
     uint32_t height;
     Crypto::Hash hash = NULL_HASH;
     std::stringstream ss;
@@ -184,5 +186,7 @@ bool Checkpoints::load_checkpoints_from_dns(bool testnet)
 
   return true;
 }
+
+
 #endif
 }

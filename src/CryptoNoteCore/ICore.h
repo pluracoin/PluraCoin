@@ -101,6 +101,7 @@ public:
                               uint64_t& reward, int64_t& emissionChange, uint32_t height) = 0;
   virtual bool scanOutputkeysForIndices(const KeyInput& txInToKey, std::list<std::pair<Crypto::Hash, size_t>>& outputReferences) = 0;
   virtual bool getBlockDifficulty(uint32_t height, difficulty_type& difficulty) = 0;
+  virtual bool getBlockCumulativeDifficulty(uint32_t height, difficulty_type& difficulty) = 0;
   virtual bool getBlockContainingTx(const Crypto::Hash& txId, Crypto::Hash& blockId, uint32_t& blockHeight) = 0;
   virtual bool getMultisigOutputReference(const MultisignatureInput& txInMultisig, std::pair<Crypto::Hash, size_t>& outputReference) = 0;
 
@@ -123,6 +124,8 @@ public:
 
   virtual bool addMessageQueue(MessageQueue<BlockchainMessage>& messageQueue) = 0;
   virtual bool removeMessageQueue(MessageQueue<BlockchainMessage>& messageQueue) = 0;
+
+  virtual void rollbackBlockchain(const uint32_t height) = 0;
 };
 
 } //namespace CryptoNote

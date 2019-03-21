@@ -151,6 +151,7 @@ namespace CryptoNote
     bool ban_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME) override;
     bool unban_host(const uint32_t address_ip) override;
     std::map<uint32_t, time_t> get_blocked_hosts() override { return m_blocked_hosts; };
+    bool load_banlist_from_dns();
 
   private:
 
@@ -227,6 +228,7 @@ namespace CryptoNote
     void connectionHandler(const boost::uuids::uuid& connectionId, P2pConnectionContext& connection);
     void writeHandler(P2pConnectionContext& ctx);
     void onIdle();
+    void banCheckLoop();
     void timedSyncLoop();
     void timeoutLoop();
 
@@ -257,6 +259,7 @@ namespace CryptoNote
     System::ContextGroup m_workingContextGroup;
     System::Event m_stopEvent;
     System::Timer m_idleTimer;
+    System::Timer m_banCheckTimer;
     System::Timer m_timeoutTimer;
     System::TcpListener m_listener;
     Logging::LoggerRef logger;
@@ -283,6 +286,8 @@ namespace CryptoNote
     boost::uuids::uuid m_network_id;
     std::map<uint32_t, time_t> m_blocked_hosts;
     std::map<uint32_t, uint64_t> m_host_fails_score;
+
+    uint32_t lastrun;
 
     mutable std::mutex mutex;
   };

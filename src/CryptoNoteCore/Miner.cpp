@@ -399,7 +399,7 @@ namespace CryptoNote
       b.nonce = nonce;
       Crypto::Hash h;
       if (!m_stop && !get_block_longhash(context, b, h)) {
-        logger(ERROR) << "Failed to get block long hash *";
+        logger(ERROR) << "Failed to get block long hash";
         m_stop = true;
       }
 
