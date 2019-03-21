@@ -54,6 +54,18 @@ struct Reset {
   };
 };
 
+struct Export {
+  struct Request {
+    std::string fileName;
+
+    void serialize(CryptoNote::ISerializer& serializer);
+  };
+
+  struct Response {
+    void serialize(CryptoNote::ISerializer& serializer);
+  };
+};
+
 struct GetViewKey {
   struct Request {
     void serialize(CryptoNote::ISerializer& serializer);
@@ -61,6 +73,20 @@ struct GetViewKey {
 
   struct Response {
     std::string viewSecretKey;
+
+    void serialize(CryptoNote::ISerializer& serializer);
+  };
+};
+
+struct GetMnemonicSeed {
+  struct Request {
+    std::string address;
+
+    void serialize(CryptoNote::ISerializer& serializer);
+  };
+
+  struct Response {
+    std::string mnemonicSeed;
 
     void serialize(CryptoNote::ISerializer& serializer);
   };
@@ -78,6 +104,7 @@ struct GetStatus {
     std::string lastBlockHash;
     uint32_t peerCount;
     uint64_t minimalFee;
+	std::string version;
 
     void serialize(CryptoNote::ISerializer& serializer);
   };
@@ -116,13 +143,28 @@ struct CreateAddress {
   struct Request {
     std::string spendSecretKey;
     std::string spendPublicKey;
-	bool reset;
+  	bool reset;
 
     void serialize(CryptoNote::ISerializer& serializer);
   };
 
   struct Response {
     std::string address;
+
+    void serialize(CryptoNote::ISerializer& serializer);
+  };
+};
+
+struct CreateAddressList {
+  struct Request {
+    std::vector<std::string> spendSecretKeys;
+    bool reset;
+
+    void serialize(CryptoNote::ISerializer& serializer);
+  };
+
+  struct Response {
+    std::vector<std::string> addresses;
 
     void serialize(CryptoNote::ISerializer& serializer);
   };

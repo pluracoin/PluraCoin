@@ -103,7 +103,7 @@ void serialize(BaseInputDetails& inputBase, ISerializer& serializer) {
 void serialize(KeyInputDetails& inputToKey, ISerializer& serializer) {
   serializer(inputToKey.input, "input");
   serializer(inputToKey.mixin, "mixin");
-  serializer(inputToKey.output, "output");
+  serializer(inputToKey.outputs, "outputs");
 }
 
 void serialize(MultisignatureInputDetails& inputMultisig, ISerializer& serializer) {
@@ -128,6 +128,12 @@ void serialize(transaction_input_details& input, ISerializer& serializer) {
 }
 
 void serialize(TransactionExtraDetails& extra, ISerializer& serializer) {
+  serializePod(extra.publicKey, "publicKey", serializer);
+  serializer(extra.nonce, "nonce");
+  serializeAsBinary(extra.raw, "raw", serializer);
+}
+
+void serialize(TransactionExtraDetails2& extra, ISerializer& serializer) {
   serializePod(extra.publicKey, "publicKey", serializer);
   serializer(extra.nonce, "nonce");
   serializeAsBinary(extra.raw, "raw", serializer);

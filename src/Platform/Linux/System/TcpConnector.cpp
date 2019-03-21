@@ -144,7 +144,6 @@ TcpConnection TcpConnector::connect(const Ipv4Address& address, uint16_t port) {
               } else {
                 if((connectorContext.events & (EPOLLERR | EPOLLHUP)) != 0) {
                   int result = close(connection);
-                  if (result) {}
                   assert(result != -1);
 
                   throw std::runtime_error("TcpConnector::connect, connection failed");
@@ -172,7 +171,6 @@ TcpConnection TcpConnector::connect(const Ipv4Address& address, uint16_t port) {
     }
 
     int result = close(connection);
-    if (result) {}
     assert(result != -1);
   }
 

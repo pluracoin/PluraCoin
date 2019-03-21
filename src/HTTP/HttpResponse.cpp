@@ -22,11 +22,9 @@
 
 namespace {
 
-const char* getStatusString(CryptoNote::HttpResponse::HTTP_STATUS status) {  
+const char* getStatusString(CryptoNote::HttpResponse::HTTP_STATUS status) {
   switch (status) {
   case CryptoNote::HttpResponse::STATUS_200:
-    return "200 OK";
-  case CryptoNote::HttpResponse::STATUS_304:
     return "200 OK";
   case CryptoNote::HttpResponse::STATUS_401:
     return "401 Unauthorized";
@@ -35,7 +33,7 @@ const char* getStatusString(CryptoNote::HttpResponse::HTTP_STATUS status) {
   case CryptoNote::HttpResponse::STATUS_500:
     return "500 Internal Server Error";
   default:
-    throw std::runtime_error("x Unknown HTTP status code is given");
+    throw std::runtime_error("Unknown HTTP status code is given");
   }
 
   return ""; //unaccessible

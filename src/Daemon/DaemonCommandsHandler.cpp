@@ -135,7 +135,7 @@ bool DaemonCommandsHandler::status(const std::vector<std::string>& args) {
     << " (" << get_sync_percentage(height, last_known_block_index) << "%) "
     << "on " << (m_core.currency().isTestnet() ? "testnet, " : "mainnet, ")
     << "network hashrate: " << get_mining_speed(hashrate) << ", next difficulty: " << difficulty << ", "
-    << "block V" << (int)majorVersion << ", alt. blocks: " << alt_block_count << ", "
+    << "block v. " << (int)majorVersion << ", alt. blocks: " << alt_block_count << ", "
     << outgoing_connections_count << " out. + " << incoming_connections_count << " inc. connection(s), "
     << rpc_conn <<  " rpc connection(s), " << tx_pool_size << " transaction(s) in mempool, "
     << "uptime: " << (unsigned int)floor(uptime / 60.0 / 60.0 / 24.0) << "d " << (unsigned int)floor(fmod((uptime / 60.0 / 60.0), 24.0)) << "h "

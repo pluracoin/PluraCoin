@@ -125,7 +125,11 @@ namespace CryptoNote
     bool payment_id(const std::vector<std::string> &args);
     bool change_password(const std::vector<std::string> &args);
     bool sweep_dust(const std::vector<std::string> &args);
+	bool estimate_fusion(const std::vector<std::string> &args);
+    bool optimize(const std::vector<std::string> &args);
     bool get_tx_key(const std::vector<std::string> &args);
+	bool get_tx_proof(const std::vector<std::string> &args);
+	bool get_reserve_proof(const std::vector<std::string> &args);
     bool sign_message(const std::vector<std::string> &args);
     bool verify_message(const std::vector<std::string> &args);
 
@@ -201,12 +205,14 @@ namespace CryptoNote
     std::string m_import_path;
     std::string m_daemon_address;
     std::string m_daemon_host;
-	std::string m_mnemonic_seed;
+    std::string m_daemon_path;
+    std::string m_mnemonic_seed;
     std::string m_wallet_file;
-	uint16_t m_daemon_port;
-	Crypto::SecretKey m_recovery_key;  // recovery key (used as random for wallet gen)
-	bool m_restore_deterministic_wallet;  // recover flag
-	bool m_non_deterministic;  // old 2-random generation
+    uint16_t m_daemon_port;
+    Crypto::SecretKey m_recovery_key;  // recovery key (used as random for wallet gen)
+    bool m_restore_deterministic_wallet;  // recover flag
+    bool m_non_deterministic;  // old 2-random generation
+    bool m_daemon_ssl;
 
     std::unique_ptr<std::promise<std::error_code>> m_initResultPromise;
 
