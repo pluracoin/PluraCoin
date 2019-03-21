@@ -2,7 +2,7 @@ The PluraCoin (PLURA) is a anonymous cryptocurrency and privacy centric with opa
 
 ## Building PluraCoin 
 
-### On *nix (Ubuntu 16.04 LTS reccommended)
+### On *nix (Ubuntu 18.04 LTS reccommended)
 
 Dependencies: GCC 4.7.3 or later, CMake 2.8.6 or later, and Boost 1.55.
 
@@ -18,7 +18,7 @@ You may download them from:
 sudo apt-get install build-essential cmake libboost-all-dev -y
 ````
 
-Ubuntu 16.04 LTS already comes with Git preinstalled. To check if you really have Git installed type:
+Ubuntu 18.04 LTS already comes with Git preinstalled. To check if you really have Git installed type:
 
 ````
 git --version
