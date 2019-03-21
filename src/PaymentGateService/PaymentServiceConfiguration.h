@@ -53,8 +53,12 @@ struct Configuration {
   std::string containerPassword;
   std::string logFile;
   std::string serverRoot;
+  std::string secretViewKey;
+  std::string secretSpendKey;
+  std::string mnemonicSeed;
 
   bool generateNewContainer;
+  bool generateDeterministic;
   bool daemonize;
   bool registerService;
   bool unregisterService;

@@ -27,6 +27,7 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/utility/value_init.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
@@ -44,6 +45,8 @@
 #include "Common/StdInputStream.h"
 #include "Common/StdOutputStream.h"
 #include "Common/Util.h"
+#include "Common/StringTools.h"
+#include "Common/DnsTools.h"
 #include "crypto/crypto.h"
 
 #include "ConnectionContext.h"
@@ -67,7 +70,6 @@ size_t get_random_index_with_fixed_probability(size_t max_index) {
   size_t x = Crypto::rand<size_t>() % (max_index + 1);
   return (x*x*x) / (max_index*max_index); //parabola \/
 }
-
 
 void addPortMapping(Logging::LoggerRef& logger, uint32_t port) {
   // Add UPnP port mapping
@@ -127,6 +129,8 @@ namespace CryptoNote
     //new
     //const command_line::arg_descriptor<bool> arg_p2p_allow_ip_blocking   =    {"allow-ip-blocking", "Allow remote nodes IP blocking via RPC", false, true};
 
+    uint32_t lastrun = 0;
+
     std::string print_peerlist_to_string(const std::list<PeerlistEntry>& pl) {
       time_t now_time = 0;
       time(&now_time);
@@ -141,7 +145,7 @@ namespace CryptoNote
 	std::string print_banlist_to_string(std::map<uint32_t, time_t> list) {
 	  auto now = time(nullptr);
       std::stringstream ss;
-      ss << std::setfill('0') << std::setw(8) << std::noshowbase;
+      //ss << std::setfill('') << std::setw(8) << std::noshowbase;
       for (std::map<uint32_t, time_t>::const_iterator i = list.begin(); i != list.end(); ++i)
       {
         if (i->second > now) {
@@ -228,6 +232,7 @@ namespace CryptoNote
     logger(log, "node_server"),
     m_stopEvent(m_dispatcher),
     m_idleTimer(m_dispatcher),
+    m_banCheckTimer(m_dispatcher),
     m_timedSyncTimer(m_dispatcher),
     m_timeoutTimer(m_dispatcher),
     m_stop(false),
@@ -603,6 +608,7 @@ namespace CryptoNote
 
     m_workingContextGroup.spawn(std::bind(&NodeServer::acceptLoop, this));
     m_workingContextGroup.spawn(std::bind(&NodeServer::onIdle, this));
+    m_workingContextGroup.spawn(std::bind(&NodeServer::banCheckLoop, this));
     m_workingContextGroup.spawn(std::bind(&NodeServer::timedSyncLoop, this));
     m_workingContextGroup.spawn(std::bind(&NodeServer::timeoutLoop, this));
 
@@ -1038,7 +1044,7 @@ namespace CryptoNote
     {
       if(be.last_seen > uint64_t(local_time))
       {
-        logger(ERROR) << "FOUND FUTURE peerlist for entry " << be.adr << " last_seen: " << be.last_seen << ", local_time(on remote node):" << local_time;
+        logger(DEBUGGING) << "FOUND FUTURE peerlist for entry " << be.adr << " last_seen: " << be.last_seen << ", local_time (on remote node):" << local_time;
         return false;
       }
       be.last_seen += delta;
@@ -1054,8 +1060,8 @@ namespace CryptoNote
     std::list<PeerlistEntry> peerlist_ = peerlist;
     if(!fix_time_delta(peerlist_, local_time, delta))
       return false;
-    //logger(Logging::TRACE) << context << "REMOTE PEERLIST: TIME_DELTA: " << delta << ", remote peerlist size=" << peerlist_.size();
-    //logger(Logging::TRACE) << context << "REMOTE PEERLIST: " <<  print_peerlist_to_string(peerlist_);
+    logger(Logging::TRACE) << context << "REMOTE PEERLIST: TIME_DELTA: " << delta << ", remote peerlist size=" << peerlist_.size();
+    logger(Logging::TRACE) << context << "REMOTE PEERLIST: " <<  print_peerlist_to_string(peerlist_);
     return m_peerlist.merge_peerlist(peerlist_);
   }
   //-----------------------------------------------------------------------------------
@@ -1247,6 +1253,8 @@ namespace CryptoNote
   int NodeServer::handle_handshake(int command, COMMAND_HANDSHAKE::request& arg, COMMAND_HANDSHAKE::response& rsp, P2pConnectionContext& context)
   {
     context.version = arg.node_data.version;
+
+    logger(Logging::DEBUGGING) << "Remote node version: " << context.version;
 
 	if (!is_remote_host_allowed(context.m_remote_ip)) {
 		logger(Logging::DEBUGGING) << context << "Banned node connected " << Common::ipAddressToString(context.m_remote_ip) << ", dropping connection.";
@@ -1440,6 +1448,7 @@ namespace CryptoNote
         idle_worker();
         m_payload_handler.on_idle();
         m_idleTimer.sleep(std::chrono::seconds(1));
+        logger(DEBUGGING) << "Idle ...";
       }
     } catch (System::InterruptedException&) {
       logger(DEBUGGING) << "onIdle() is interrupted";
@@ -1448,6 +1457,24 @@ namespace CryptoNote
     }
 
     logger(DEBUGGING) << "onIdle finished";
+  }
+
+  void NodeServer::banCheckLoop() {
+    logger(INFO) << "Checking IP ban list";
+
+    try {
+      while (!m_stop) {
+        load_banlist_from_dns();
+        m_banCheckTimer.sleep(std::chrono::seconds(CryptoNote::parameters::BAN_CHECK_INTERVAL));
+        logger(DEBUGGING) << "banCheckLoop waiting ..." << CryptoNote::parameters::BAN_CHECK_INTERVAL << " seconds";
+      }
+    } catch (System::InterruptedException&) {
+      logger(DEBUGGING) << "banCheckLoop() is interrupted";
+    } catch (std::exception& e) {
+      logger(TRACE) << "Exception in banCheckLoop: " << e.what();
+    }
+
+    logger(DEBUGGING) << "banCheckLoop finished";
   }
 
   void NodeServer::timeoutLoop() {
@@ -1590,4 +1617,27 @@ namespace CryptoNote
 
     logger(DEBUGGING) << ctx << "writeHandler finished";
   }
+
+  bool NodeServer::load_banlist_from_dns()
+  {
+    std::string domain("ban.pluracoing.org");
+    std::vector<std::string>records;
+
+    logger(Logging::DEBUGGING) << "Fetching IP ban list records from " << domain;
+
+    if (!Common::fetch_dns_txt(domain, records)) {
+      logger(Logging::INFO) << "Failed to lookup DNS IP ban list records from " << domain;
+    }
+
+    for (const auto& record : records) {
+      logger(Logging::DEBUGGING) << "Adding globally banned IP: " << record;
+      const uint32_t address_ip = Common::stringToIpAddress(record);
+      const time_t timeout = 120;        //ban for 2 minutes while check for IP ban list is 60 seconds by default
+      ban_host(address_ip, timeout);
+    }
+
+    return true;
+  }
+
+
 }

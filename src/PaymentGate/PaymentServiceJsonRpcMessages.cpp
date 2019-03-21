@@ -33,11 +33,30 @@ void Reset::Request::serialize(CryptoNote::ISerializer& serializer) {
 void Reset::Response::serialize(CryptoNote::ISerializer& serializer) {
 }
 
+void Export::Request::serialize(CryptoNote::ISerializer& serializer) {
+  if (!serializer(fileName, "fileName")) {
+    throw RequestSerializationError();
+  }
+}
+
+void Export::Response::serialize(CryptoNote::ISerializer& serializer) {
+}
+
 void GetViewKey::Request::serialize(CryptoNote::ISerializer& serializer) {
 }
 
 void GetViewKey::Response::serialize(CryptoNote::ISerializer& serializer) {
   serializer(viewSecretKey, "viewSecretKey");
+}
+
+void GetMnemonicSeed::Request::serialize(CryptoNote::ISerializer& serializer) {
+  if (!serializer(address, "address")) {
+    throw RequestSerializationError();
+  }
+}
+
+void GetMnemonicSeed::Response::serialize(CryptoNote::ISerializer& serializer) {
+  serializer(mnemonicSeed, "mnemonicSeed");
 }
 
 void GetStatus::Request::serialize(CryptoNote::ISerializer& serializer) {
@@ -50,6 +69,7 @@ void GetStatus::Response::serialize(CryptoNote::ISerializer& serializer) {
   serializer(lastBlockHash, "lastBlockHash");
   serializer(peerCount, "peerCount");
   serializer(minimalFee, "minimalFee");
+  serializer(version, "version");
 }
 
 void ValidateAddress::Request::serialize(CryptoNote::ISerializer& serializer) {
@@ -84,6 +104,19 @@ void CreateAddress::Request::serialize(CryptoNote::ISerializer& serializer) {
 
 void CreateAddress::Response::serialize(CryptoNote::ISerializer& serializer) {
   serializer(address, "address");
+}
+
+void CreateAddressList::Request::serialize(CryptoNote::ISerializer& serializer) {
+  if (!serializer(spendSecretKeys, "spendSecretKeys")) {
+    //TODO: replace it with error codes
+    throw RequestSerializationError();
+  }
+  if (!serializer(reset, "reset"))
+    reset = true;
+}
+
+void CreateAddressList::Response::serialize(CryptoNote::ISerializer& serializer) {
+  serializer(addresses, "addresses");
 }
 
 void DeleteAddress::Request::serialize(CryptoNote::ISerializer& serializer) {
