@@ -28,6 +28,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/utility/value_init.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
@@ -1124,7 +1125,7 @@ namespace CryptoNote
     }
     rsp.connections_count = get_connections_count();
     rsp.incoming_connections_count = rsp.connections_count - get_outgoing_connections_count();
-    rsp.version = PROJECT_VERSION_LONG;
+    rsp.version = PROJECT_VERSION;
     rsp.os_version = Tools::get_os_version_string();
     m_payload_handler.get_stat_info(rsp.payload_info);
     return 1;
@@ -1637,6 +1638,11 @@ namespace CryptoNote
     }
 
     return true;
+  }
+
+  bool NodeServer::check_daemon_version()
+  {
+    //TODO - regularly check daemon version (every hour?)
   }
 
 

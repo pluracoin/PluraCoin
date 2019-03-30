@@ -19,14 +19,19 @@
 
 #include "version.h"
 
+#include <iostream>
+#include <string>
+
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <boost/format.hpp>
 
 #include "DaemonCommandsHandler.h"
 
 #include "Common/SignalHandler.h"
 #include "Common/StringTools.h"
 #include "Common/PathTools.h"
+#include "Common/DnsTools.h"
 #include "crypto/hash.h"
 #include "CryptoNoteCore/CryptoNoteTools.h"
 #include "CryptoNoteCore/Core.h"
@@ -161,7 +166,7 @@ int main(int argc, char* argv[])
 
       if (command_line::get_arg(vm, command_line::arg_help))
       {
-        std::cout << CryptoNote::CRYPTONOTE_NAME << " v" << PROJECT_VERSION_LONG << ENDL << ENDL;
+        std::cout << CryptoNote::CRYPTONOTE_NAME << " v." << PROJECT_VERSION << ENDL << ENDL;
         std::cout << desc_options << std::endl;
         return false;
       }
@@ -206,7 +211,42 @@ int main(int argc, char* argv[])
     // configure logging
     logManager.configure(buildLoggerConfiguration(cfgLogLevel, cfgLogFile));
 
-    logger(INFO) << CryptoNote::CRYPTONOTE_NAME << " v" << PROJECT_VERSION_LONG;
+    logger(INFO) << CryptoNote::CRYPTONOTE_NAME << " v." << PROJECT_VERSION;
+
+    //check for latest version
+    std::string domain("versiond.pluracoing.org");
+    std::vector<std::string>record;
+
+    logger(Logging::INFO) << "Getting latest version info ...";
+
+    if (!Common::fetch_dns_txt(domain, record)) {
+      logger(Logging::INFO) << "Failed to get latest daemon version. Continuing ...";
+      }
+    else {
+        for (const auto& record : record) {
+          std::string latest_version = boost::replace_all_copy(record, ".", "");
+
+          std::stringstream ss;
+          ss << PROJECT_VERSION;
+          std::string lvs;
+          ss >> lvs;
+
+          std::string local_version = boost::replace_all_copy(lvs, ".", "");
+          if(local_version == latest_version) {
+            logger(INFO, GREEN) << "Great! You are using latest version " << record;
+            }
+          else {
+            std::cout << "\n";
+            logger(ERROR, BRIGHT_RED) << "Your daemon version is not up to date!";
+            logger(ERROR, BRIGHT_RED) << "Please download the latest version " << record << " from " << " https://github.com/pluracoin/PluraCoin/releases";
+            std::cout << "\n";
+            logger(Logging::INFO) << "Shutting down ...";
+            std::cout << "\n";
+            return 0;
+          }
+
+        }
+    }
 
     if (command_line_preprocessor(vm, logger)) {
       return 0;
@@ -417,7 +457,7 @@ bool command_line_preprocessor(const boost::program_options::variables_map &vm, 
   bool exit = false;
 
   if (command_line::get_arg(vm, command_line::arg_version)) {
-    std::cout << CryptoNote::CRYPTONOTE_NAME << " v" << PROJECT_VERSION_LONG << ENDL;
+    std::cout << CryptoNote::CRYPTONOTE_NAME << " v." << PROJECT_VERSION << ENDL;
     exit = true;
   }
   if (command_line::get_arg(vm, arg_os_version)) {

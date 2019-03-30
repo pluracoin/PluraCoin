@@ -301,7 +301,7 @@ int main(int argc, char** argv) {
       return 0; //help message requested or so
     }
 
-    Logging::LoggerRef(pg.getLogger(), "main")(Logging::INFO) << "walletd v" << PROJECT_VERSION_LONG;
+    Logging::LoggerRef(pg.getLogger(), "main")(Logging::INFO) << "walletd v." << PROJECT_VERSION;
 
     const auto& config = pg.getConfig();
 

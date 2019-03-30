@@ -665,7 +665,7 @@ bool RpcServer::on_get_info(const COMMAND_RPC_GET_INFO::request& req, COMMAND_RP
   res.last_known_block_index = std::max(static_cast<uint32_t>(1), m_protocolQuery.getObservedHeight()) - 1;
   Crypto::Hash last_block_hash = m_core.getBlockIdByHeight(m_core.get_current_blockchain_height() - 1);
   res.top_block_hash = Common::podToHex(last_block_hash);
-  res.version = PROJECT_VERSION_LONG;
+  res.version = PROJECT_VERSION;
   res.fee_address = m_fee_address.empty() ? std::string() : m_fee_address;
   res.contact = m_contact_info.empty() ? std::string() : m_contact_info;
   res.min_tx_fee = m_core.getMinimalFee();
