@@ -215,15 +215,15 @@ int main(int argc, char* argv[])
 
     //check for latest version
     std::string domain("versiond.pluracoing.org");
-    std::vector<std::string>record;
+    std::vector<std::string>records;
 
     logger(Logging::INFO) << "Getting latest version info ...";
 
-    if (!Common::fetch_dns_txt(domain, record)) {
+    if (!Common::fetch_dns_txt(domain, records)) {
       logger(Logging::INFO) << "Failed to get latest daemon version. Continuing ...";
       }
     else {
-        for (const auto& record : record) {
+        for (const auto& record : records) {
           std::string latest_version = boost::replace_all_copy(record, ".", "");
 
           std::stringstream ss;
