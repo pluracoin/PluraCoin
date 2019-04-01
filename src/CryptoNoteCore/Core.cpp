@@ -304,7 +304,7 @@ bool core::check_tx_unmixable(const Transaction& tx, uint32_t height) {
   for (const auto& out : tx.outputs) {
     if (!is_valid_decomposed_amount(out.amount) && height >= CryptoNote::parameters::UPGRADE_HEIGHT_V5) {
       logger(ERROR, RED) << "Invalid decomposed output amount " << out.amount << " for tx id= " << getObjectHash(tx);
-      //return false;
+      return false;
     }
   }
   return true;
