@@ -717,7 +717,7 @@ bool RpcServer::on_ban_ip(const COMMAND_RPC_BAN_IP::request& req, COMMAND_RPC_BA
   else {    
       ipnum = Common::stringToIpAddress(req.ip);             
       if(ipnum) {
-        m_p2p.ban_host(ipnum, seconds);           
+        m_p2p.ban_host(ipnum, seconds, false);
         }
       else {
         logger(INFO, BRIGHT_YELLOW) << "Could not ban IP [" << req.ip <<"]";        
@@ -740,7 +740,7 @@ bool RpcServer::on_unban_ip(const COMMAND_RPC_UNBAN_IP::request& req, COMMAND_RP
   else {    
       ipnum = Common::stringToIpAddress(req.ip);             
       if(ipnum) {
-        m_p2p.unban_host(ipnum);
+        m_p2p.unban_host(ipnum, false);
         }
       else {
         logger(INFO, BRIGHT_YELLOW) << "Could not unban IP [" << req.ip <<"]";        

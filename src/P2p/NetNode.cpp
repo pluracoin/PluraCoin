@@ -369,7 +369,7 @@ namespace CryptoNote
   }
   
   //-----------------------------------------------------------------------------------
-  bool NodeServer::block_host(const uint32_t address_ip, time_t seconds)
+  bool NodeServer::block_host(const uint32_t address_ip, time_t seconds, bool silent)
   {
     m_blocked_hosts[address_ip] = time(nullptr) + seconds;
     // drop any connection to that IP
@@ -378,20 +378,30 @@ namespace CryptoNote
         context.m_state = CryptoNoteConnectionContext::state_shutdown;
       }
     });
-	logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " blocked.";
+    if(silent) {
+        logger(DEBUGGING) << "Host " << Common::ipAddressToString(address_ip) << " blocked.";
+        }
+    else {
+        logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " blocked.";
+        }
 	return true;
   }
   //-----------------------------------------------------------------------------------
   
-  bool NodeServer::unblock_host(const uint32_t address_ip)
+  bool NodeServer::unblock_host(const uint32_t address_ip, bool silent)
   {
     auto i = m_blocked_hosts.find(address_ip);
     if (i == m_blocked_hosts.end()) {
-      logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " is not blocked.";
+        if(!silent) logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " is not blocked.";
       return false;
     }
     m_blocked_hosts.erase(i);
-    logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " unblocked.";
+    if(silent) {
+        logger(DEBUGGING) << "Host " << Common::ipAddressToString(address_ip) << " unblocked.";
+        }
+    else {
+        logger(INFO) << "Host " << Common::ipAddressToString(address_ip) << " unblocked.";
+        }
     return true;
   }
   //-----------------------------------------------------------------------------------
@@ -427,16 +437,16 @@ namespace CryptoNote
   }
   //-----------------------------------------------------------------------------------
 
-  bool NodeServer::ban_host(const uint32_t address_ip, time_t seconds)
+  bool NodeServer::ban_host(const uint32_t address_ip, time_t seconds, bool silent)
   {
 	  std::unique_lock<std::mutex> lock(mutex);
-	  return block_host(address_ip, seconds);
+      return block_host(address_ip, seconds, silent);
   }
   
-  bool NodeServer::unban_host(const uint32_t address_ip)
+  bool NodeServer::unban_host(const uint32_t address_ip, bool silent)
   {
 	  std::unique_lock<std::mutex> lock(mutex);
-	  return unblock_host(address_ip);
+      return unblock_host(address_ip, silent);
   }
   //-----------------------------------------------------------------------------------
 
@@ -1634,7 +1644,7 @@ namespace CryptoNote
       logger(Logging::DEBUGGING) << "Adding globally banned IP: " << record;
       const uint32_t address_ip = Common::stringToIpAddress(record);
       const time_t timeout = 120;        //ban for 2 minutes while check for IP ban list is 60 seconds by default
-      ban_host(address_ip, timeout);
+      ban_host(address_ip, timeout, true);
     }
 
     return true;

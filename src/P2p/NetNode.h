@@ -148,8 +148,8 @@ namespace CryptoNote
     size_t get_outgoing_connections_count();
 
     CryptoNote::PeerlistManager& getPeerlistManager() { return m_peerlist; }
-    bool ban_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME) override;
-    bool unban_host(const uint32_t address_ip) override;
+    bool ban_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME, bool silent = true) override;
+    bool unban_host(const uint32_t address_ip, bool silent = true) override;
     std::map<uint32_t, time_t> get_blocked_hosts() override { return m_blocked_hosts; };
     bool load_banlist_from_dns();
     bool check_daemon_version();
@@ -191,8 +191,8 @@ namespace CryptoNote
 
     //-----------------------------------------------------------------------------------------------
     bool add_host_fail(const uint32_t address_ip);
-	bool block_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME);
-	bool unblock_host(const uint32_t address_ip);
+    bool block_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME, bool silent = true);
+    bool unblock_host(const uint32_t address_ip, bool silent = true);
 	bool handle_command_line(const boost::program_options::variables_map& vm);
 	bool is_remote_host_allowed(const uint32_t address_ip);
     bool handleConfig(const NetNodeConfig& config);

@@ -427,7 +427,7 @@ bool DaemonCommandsHandler::ban(const std::vector<std::string>& args)
   } catch (const std::exception &e) {
      return false;
   }
-  return m_srv.ban_host(ip, seconds);
+  return m_srv.ban_host(ip, seconds, false);
 }
 
 bool DaemonCommandsHandler::unban(const std::vector<std::string>& args)
@@ -440,5 +440,5 @@ bool DaemonCommandsHandler::unban(const std::vector<std::string>& args)
   }	catch (const std::exception &e) {
     return false;
   }
-  return m_srv.unban_host(ip);
+  return m_srv.unban_host(ip, false);
 }
