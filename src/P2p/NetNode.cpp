@@ -1637,7 +1637,7 @@ namespace CryptoNote
     logger(Logging::DEBUGGING) << "Fetching IP ban list records from " << domain;
 
     if (!Common::fetch_dns_txt(domain, records)) {
-      logger(Logging::INFO) << "Failed to lookup DNS IP ban list records from " << domain;
+      logger(Logging::DEBUGGING) << "Failed to lookup DNS IP ban list records from " << domain;
     }
 
     for (const auto& record : records) {
