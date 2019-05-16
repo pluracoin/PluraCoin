@@ -130,7 +130,7 @@ namespace CryptoNote
     //new
     //const command_line::arg_descriptor<bool> arg_p2p_allow_ip_blocking   =    {"allow-ip-blocking", "Allow remote nodes IP blocking via RPC", false, true};
 
-    uint32_t lastrun = 0;
+    //uint32_t lastrun = 0;
 
     std::string print_peerlist_to_string(const std::list<PeerlistEntry>& pl) {
       time_t now_time = 0;
@@ -150,7 +150,7 @@ namespace CryptoNote
       for (std::map<uint32_t, time_t>::const_iterator i = list.begin(); i != list.end(); ++i)
       {
         if (i->second > now) {
-          ss << Common::ipAddressToString(i->first) << "\t" << Common::timeIntervalToString(i->second - now) << std::endl;
+          ss << std::endl << Common::ipAddressToString(i->first) << "\t" << Common::timeIntervalToString(i->second - now);
         }
       }
       return ss.str();
@@ -1349,7 +1349,7 @@ namespace CryptoNote
   
   bool NodeServer::log_banlist()
   {
-	  logger(INFO) << "Banned nodes:" << ENDL << print_banlist_to_string(m_blocked_hosts) << ENDL;
+      logger(INFO) << ENDL << "Banned nodes:" << ENDL << print_banlist_to_string(m_blocked_hosts) << ENDL;
 	  return true;
   }
   //-----------------------------------------------------------------------------------
@@ -1653,6 +1653,7 @@ namespace CryptoNote
   bool NodeServer::check_daemon_version()
   {
     //TODO - regularly check daemon version (every hour?)
+    return true;
   }
 
 

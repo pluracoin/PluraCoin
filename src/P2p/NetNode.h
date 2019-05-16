@@ -288,7 +288,7 @@ namespace CryptoNote
     std::map<uint32_t, time_t> m_blocked_hosts;
     std::map<uint32_t, uint64_t> m_host_fails_score;
 
-    uint32_t lastrun;
+    //uint32_t lastrun;
 
     mutable std::mutex mutex;
   };
