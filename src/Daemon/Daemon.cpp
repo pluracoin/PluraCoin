@@ -232,7 +232,11 @@ int main(int argc, char* argv[])
           ss >> lvs;
 
           std::string local_version = boost::replace_all_copy(lvs, ".", "");
-          if(local_version == latest_version) {
+          
+          int local_version_int = std::stoi(local_version);
+          int latest_version_int = std::stoi(latest_version);   
+          
+          if(local_version_int == latest_version_int) {
             logger(INFO, GREEN) << "Great! You are using latest version " << record;
             }
           else {
