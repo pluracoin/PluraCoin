@@ -150,6 +150,8 @@ const uint32_t P2P_IDLE_CONNECTION_KILL_INTERVAL             = (5 * 60);      //
 
 const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "";
 
+//TODO - move seeds to DNS
+	
 const char* const SEED_NODES[] = { 
 	"78.47.248.206:19200",
 	"88.198.105.197:19200",
@@ -162,7 +164,7 @@ struct CheckpointData {
   uint32_t height;
   const char* blockId;
 };
-
+	
 const std::initializer_list<CheckpointData> CHECKPOINTS = {
     {3000,	"bec581b36c62e08ffd7520b7784366ec34b600edda6418a6893ef0fc7ecb8d91"},
     {10000, "f199869dd20c764353585fbf061361c194ac289eb68b21c0bfb4d7c8d4492beb"},
