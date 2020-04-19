@@ -127,16 +127,16 @@ bool DaemonCommandsHandler::status(const std::vector<std::string>& args) {
   uint64_t hashrate = (uint32_t)round(difficulty / CryptoNote::parameters::DIFFICULTY_TARGET);
   std::time_t uptime = std::time(nullptr) - m_core.getStartTime();
   uint8_t majorVersion = m_core.getBlockMajorVersionForHeight(height);
-  bool synced = ((uint32_t)height == (uint32_t)last_known_block_index);
-  uint64_t alt_block_count = m_core.get_alternative_blocks_count();
+  bool synced = ((uint32_t)height == (uint32_t)last_known_block_index);  
 
   std::cout << std::endl
-    << (synced ? "Synced " : "Syncing ") << height << "/" << last_known_block_index 
+    << (synced ? "Synced " : "Syncing ") << height << " / " << last_known_block_index
     << " (" << get_sync_percentage(height, last_known_block_index) << "%) "
     << "on " << (m_core.currency().isTestnet() ? "testnet, " : "mainnet, ")
     << "network hashrate: " << get_mining_speed(hashrate) << ", next difficulty: " << difficulty << ", "
-    << "block v. " << (int)majorVersion << ", alt. blocks: " << alt_block_count << ", "
+    << "block v. " << (int)majorVersion << ", alt. blocks: " << alt_blocks_count << ", "
     << outgoing_connections_count << " out. + " << incoming_connections_count << " inc. connection(s), "
+    << "white peers: " << white_peerlist_size << ", grey peers: " << grey_peerlist_size << ", "
     << rpc_conn <<  " rpc connection(s), " << tx_pool_size << " transaction(s) in mempool, "
     << "uptime: " << (unsigned int)floor(uptime / 60.0 / 60.0 / 24.0) << "d " << (unsigned int)floor(fmod((uptime / 60.0 / 60.0), 24.0)) << "h "
     << (unsigned int)floor(fmod((uptime / 60.0), 60.0)) << "m " << (unsigned int)fmod(uptime, 60.0) << "s"
@@ -411,7 +411,7 @@ bool DaemonCommandsHandler::ban(const std::vector<std::string>& args)
   if (args.size() != 1 && args.size() != 2) return false;
   std::string addr = args[0];
   uint32_t ip;
-  time_t seconds;
+  time_t seconds = 120;
   if (args.size() > 1) {
     try {
       seconds = std::stoi(args[1]);

@@ -152,6 +152,7 @@ namespace CryptoNote
     bool unban_host(const uint32_t address_ip, bool silent = true) override;
     std::map<uint32_t, time_t> get_blocked_hosts() override { return m_blocked_hosts; };
     bool load_banlist_from_dns();
+    std::vector<std::string> load_seeds_from_dns();
     bool check_daemon_version();
 
   private:

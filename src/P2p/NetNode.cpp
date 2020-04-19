@@ -552,13 +552,23 @@ namespace CryptoNote
   //-----------------------------------------------------------------------------------
   
   bool NodeServer::init(const NetNodeConfig& config) {
-    if (!config.getTestnet()) {
-      for (auto seed : CryptoNote::SEED_NODES) {
-        append_net_address(m_seed_nodes, seed);
-      }
-    } else {
-      m_network_id.data[0] += 1;
-    }
+    if (!config.getTestnet()) {      
+
+        std::vector<std::string> seeds = load_seeds_from_dns();
+        int seed_count = seeds.size();
+
+        if(!seed_count) {
+            logger(ERROR, BRIGHT_RED) << "Failed to lookup DNS for seeds, aborting. Check your internet connection.";
+            return false;
+            }
+
+        for (auto seed : seeds) {
+            append_net_address(m_seed_nodes, seed);
+            }
+        }
+        else {
+            m_network_id.data[0] += 1;
+        }
 
     if (!handleConfig(config)) { 
       logger(ERROR, BRIGHT_RED) << "Failed to handle command line"; 
@@ -1510,6 +1520,7 @@ namespace CryptoNote
   }
 
   void NodeServer::timedSyncLoop() {
+    logger(INFO) << "Synchronization started ...";
     try {
       for (;;) {
         m_timedSyncTimer.sleep(std::chrono::seconds(P2P_DEFAULT_HANDSHAKE_INTERVAL));
@@ -1632,7 +1643,7 @@ namespace CryptoNote
   bool NodeServer::load_banlist_from_dns()
   {
     std::string domain("ban.pluracoing.org");
-    std::vector<std::string>records;
+    std::vector<std::string> records;
 
     logger(Logging::DEBUGGING) << "Fetching IP ban list records from " << domain;
 
@@ -1648,6 +1659,25 @@ namespace CryptoNote
     }
 
     return true;
+  }
+
+  std::vector<std::string> NodeServer::load_seeds_from_dns()
+  {
+    std::string domain("seed.pluracoin.org");
+    std::vector<std::string> records;
+    std::vector<std::string> seeds;
+
+    logger(Logging::INFO) << "Fetching seed list from " << domain;
+
+    Common::fetch_dns_txt(domain, records);
+
+    for (const auto& record : records) {
+        logger(Logging::INFO) << "Loading seed: " << record;
+        seeds.push_back(record);
+        }
+
+    return seeds;
+
   }
 
   bool NodeServer::check_daemon_version()
