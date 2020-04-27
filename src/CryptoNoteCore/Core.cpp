@@ -283,7 +283,7 @@ bool core::check_tx_fee(const Transaction& tx, size_t blobSize, tx_verification_
 			", have " << m_currency.formatAmount(inputs_amount);
 		tvc.m_verification_failed = true;
 		return false;
-	}
+  }
 
 	Crypto::Hash h = NULL_HASH;
 	getObjectHash(tx, h, blobSize);
@@ -295,7 +295,7 @@ bool core::check_tx_fee(const Transaction& tx, size_t blobSize, tx_verification_
 		tvc.m_verification_failed = true;
 		tvc.m_tx_fee_too_small = true;
 		return false;
-	}
+    }
 
 	return true;
 }
@@ -664,7 +664,6 @@ bool core::handle_incoming_block(const Block& b, block_verification_context& bvc
   if (control_miner) {
     pause_mining();
   }
-
   m_blockchain.addNewBlock(b, bvc);
 
   if (control_miner) {
@@ -786,15 +785,12 @@ bool core::update_miner_block_template() {
 
 bool core::on_idle() {
   if (!m_starter_message_showed) {
-    logger(INFO) << ENDL << "**********************************************************************" << ENDL
-      << "The daemon will start synchronizing with the network. It may take up to several hours." << ENDL
-      << ENDL
-      << "You can set the level of process detailization* through \"set_log <level>\" command*, where <level> is between 0 (no details) and 4 (very verbose)." << ENDL
-      << ENDL
-      << "Use \"help\" command to see the list of available commands." << ENDL
-      << ENDL
+    logger(INFO) << ENDL << "#######################################################################################" << ENDL
+      << "The daemon will start synchronizing with the network. It may take up to several hours." << ENDL      
+      << "You can set the level of process detailization* through \"set_log <level>\" command*, where <level> is between 0 (no details) and 4 (very verbose)." << ENDL      
+      << "Use \"help\" command to see the list of available commands." << ENDL      
       << "Note: in case you need to interrupt the process, use \"exit\" command. Otherwise, the current progress won't be saved." << ENDL
-      << "**********************************************************************";
+      << "#######################################################################################" << ENDL << ENDL;
     m_starter_message_showed = true;
   }
 

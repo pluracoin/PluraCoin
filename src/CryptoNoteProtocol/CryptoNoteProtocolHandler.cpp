@@ -17,6 +17,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <iostream>
+#include <iomanip>
+
 #include "CryptoNoteProtocolHandler.h"
 
 #include <future>
@@ -171,7 +174,7 @@ bool CryptoNoteProtocolHandler::process_payload_sync_data(const CORE_SYNC_DATA& 
     logger(diff >= 0 ? (is_inital ? Logging::INFO : Logging::DEBUGGING) : Logging::TRACE, Logging::BRIGHT_YELLOW) << context <<
       "Sync data returned unknown top block: " << get_current_blockchain_height() << " -> " << hshd.current_height
       << " [" << std::abs(diff) << " blocks (" << std::abs(diff) / (24 * 60 * 60 / m_currency.difficultyTarget()) << " days) "
-      << (diff >= 0 ? std::string("behind") : std::string("ahead")) << "] " << std::endl << "SYNCHRONIZATION started";
+      << (diff >= 0 ? std::string("behind") : std::string("ahead")) << "] " << std::endl << "SYNCHRONIZATION with remote node started";
 
     logger(Logging::DEBUGGING) << "Remote top block height: " << hshd.current_height << ", id: " << hshd.top_id;
     //let the socket to send response to handshake, but request callback, to let send request data after response
@@ -241,7 +244,7 @@ int CryptoNoteProtocolHandler::handle_notify_new_block(int command, NOTIFY_NEW_B
   logger(Logging::TRACE) << context << "NOTIFY_NEW_BLOCK (hop " << arg.hop << ")";
   if(arg.hop == 0) {
     logger(Logging::INFO) << "NOTIFY_NEW_BLOCK:" << arg.current_blockchain_height << ":" << Common::ipAddressToString(context.m_remote_ip);
-    }
+    }  
 
   updateObservedHeight(arg.current_blockchain_height, context);
 
@@ -267,7 +270,7 @@ int CryptoNoteProtocolHandler::handle_notify_new_block(int command, NOTIFY_NEW_B
   }
 
   block_verification_context bvc = boost::value_initialized<block_verification_context>();
-  m_core.handle_incoming_block_blob(asBinaryArray(arg.b.block), bvc, true, false);
+  m_core.handle_incoming_block_blob(asBinaryArray(arg.b.block), bvc, true, false);  
   if (bvc.m_verification_failed) {
     logger(Logging::DEBUGGING) << context << "Block verification failed, dropping connection";
     m_p2p->drop_connection(context, true);
@@ -411,8 +414,11 @@ int CryptoNoteProtocolHandler::handle_response_get_objects(int command, NOTIFY_R
 
   uint32_t height;
   Crypto::Hash top;
-  m_core.get_blockchain_top(height, top);
-  logger(DEBUGGING, BRIGHT_GREEN) << "Local blockchain updated, new height = " << height;
+  m_core.get_blockchain_top(height, top);  
+
+  float completed = ((float)height/(float)context.m_remote_blockchain_height)*100;
+
+  logger(INFO) << "Local blockchain updated, new height = " << height << " (" << std::setprecision(2) << std::fixed << completed << "% completed)";
 
   if (!m_stop && context.m_state == CryptoNoteConnectionContext::state_synchronizing) {
     request_missing_objects(context, true);

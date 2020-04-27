@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
             logger(ERROR, BRIGHT_RED) << "Your daemon version is not up to date!";
             logger(ERROR, BRIGHT_RED) << "Please download the latest version " << record << " from " << " https://github.com/pluracoin/PluraCoin/releases";
             std::cout << "\n";
-            logger(Logging::INFO) << "Shutting down ...";
+            logger(Logging::INFO) << "Shutting down";
             std::cout << "\n";
             return 0;
           }

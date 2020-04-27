@@ -530,6 +530,19 @@ bool Blockchain::init(const std::string& config_folder, bool load_existing) {
     << "Blockchain initialized. last block: " << m_blocks.size() - 1 << ", "
     << Common::timeIntervalToString(timestamp_diff)
     << " time ago, current difficulty: " << getDifficultyForNextBlock();
+
+  if((m_blocks.size() - 1) == 0) {
+      logger(INFO) << "";
+      logger(INFO) << "#######################################################################################";
+      logger(INFO) << "# If you want to speed up the synchronization process rapidly then                    #";
+      logger(INFO) << "# 1) Download blockchain bootstrap at https://blockchain.pluracoin.org/blockchain.zip #";
+      logger(INFO) << "# 2) Stop PluraCoin daemon                                                            #";
+      logger(INFO) << "# 3) Replace files in ~/.pluracoin folder with those in blockchain.zip                #";
+      logger(INFO) << "# 4) Start PluraCoin daemon again                                                     #";
+      logger(INFO) << "#######################################################################################";
+      logger(INFO) << "";
+  }
+
   return true;
 }
 
@@ -1889,8 +1902,12 @@ bool Blockchain::checkBlockVersion(const Block& b, const Crypto::Hash& blockHash
   
   if (b.majorVersion != expectedBlockVersion) {
     logger(TRACE) << "Block " << blockHash << " has wrong major version: " << static_cast<int>(b.majorVersion) <<
-      ", at height " << height << " expected version is " << static_cast<int>(expectedBlockVersion);
-    return false;
+      ", at height " << height << " expected version is " << static_cast<int>(expectedBlockVersion);    
+
+    //dirty fix to make sure first V4 block will pass through
+    if(height!=20890) {
+        return false;
+        }
   }
 
   if (b.majorVersion == BLOCK_MAJOR_VERSION_2 && b.parentBlock.majorVersion > BLOCK_MAJOR_VERSION_1) {
