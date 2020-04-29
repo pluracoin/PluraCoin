@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
     logger(INFO) << CryptoNote::CRYPTONOTE_NAME << " v." << PROJECT_VERSION;
 
     //check for latest version
-    std::string domain("versiond.pluracoing.org");
+    std::string domain("versiond.pluracoin.org");
     std::vector<std::string>records;
 
     logger(Logging::INFO) << "Getting latest version info ...";
