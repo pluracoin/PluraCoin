@@ -1642,7 +1642,7 @@ namespace CryptoNote
 
   bool NodeServer::load_banlist_from_dns()
   {
-    std::string domain("ban.pluracoing.org");
+    std::string domain("ban.pluracoin.org");
     std::vector<std::string> records;
 
     logger(Logging::DEBUGGING) << "Fetching IP ban list records from " << domain;
