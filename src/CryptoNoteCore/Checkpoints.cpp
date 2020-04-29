@@ -150,8 +150,8 @@ std::vector<uint32_t> Checkpoints::getCheckpointHeights() const {
 //---------------------------------------------------------------------------
 bool Checkpoints::load_checkpoints_from_dns(bool testnet)
 { 
-  std::string domain("checkpoints.pluracoing.org");
-  if(testnet) std::string domain("testpoints.pluracoing.org");    
+  std::string domain("checkpoints.pluracoin.org");
+  if(testnet) std::string domain("testpoints.pluracoin.org");
   std::vector<std::string>records;
 
   logger(Logging::DEBUGGING) << "Fetching DNS checkpoint records from " << domain;
