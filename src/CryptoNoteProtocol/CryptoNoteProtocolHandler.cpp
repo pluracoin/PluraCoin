@@ -566,7 +566,8 @@ int CryptoNoteProtocolHandler::handle_response_get_objects(int command, NOTIFY_R
   }
 
   m_core.get_blockchain_top(height, top);
-  logger(DEBUGGING, BRIGHT_GREEN) << "Local blockchain updated, new height = " << height;
+  float completed = ((float)height/(float)context.m_remote_blockchain_height)*100;
+  logger(INFO, BRIGHT_GREEN) << "Local blockchain updated, new height = " << height << " (" << std::setprecision(2) << std::fixed << completed << "% completed)";
 
   if (!m_stop && context.m_state == CryptoNoteConnectionContext::state_synchronizing) {
     request_missing_objects(context, true);
