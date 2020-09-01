@@ -17,6 +17,7 @@
 
 #include "Dispatcher.h"
 #include <cassert>
+#include <stdexcept>
 #include <string>
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN

@@ -4,7 +4,7 @@
  *
  *  brief Polish word list and map.
  *
- *  Created by contributor Lastik, edited by Aiwe
+ *  Created by Karbovanets contributor Lastik, edited by Aiwe
  *  Based on https://pl.wiktionary.org/wiki/Kategoria:Listy_frekwencyjne
  *
  */

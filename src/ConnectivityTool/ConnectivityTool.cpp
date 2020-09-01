@@ -45,7 +45,7 @@ using namespace CryptoNote;
 #ifndef ENDL
 #define ENDL std::endl
 #endif
-
+#ifdef ALLOW_DEBUG_COMMANDS
 namespace {
   const command_line::arg_descriptor<std::string, true> arg_ip           = {"ip", "set ip"};
   const command_line::arg_descriptor<uint16_t>      arg_port = { "port", "set port" };
@@ -203,8 +203,8 @@ bool handle_get_daemon_info(po::variables_map& vm) {
     std::cout << "OK" << ENDL
       << "height: " << res.height << ENDL
       << "difficulty: " << res.difficulty << ENDL
-      << "tx_count: " << res.tx_count << ENDL
-      << "tx_pool_size: " << res.tx_pool_size << ENDL
+      << "transactions_count: " << res.tx_count << ENDL
+      << "transactions_pool_size: " << res.tx_pool_size << ENDL
       << "alt_blocks_count: " << res.alt_blocks_count << ENDL
       << "outgoing_connections_count: " << res.outgoing_connections_count << ENDL
       << "incoming_connections_count: " << res.incoming_connections_count << ENDL
@@ -385,3 +385,4 @@ int main(int argc, char *argv[]) {
   std::cerr << desc_all << ENDL;
   return 1;
 }
+#endif

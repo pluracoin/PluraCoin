@@ -18,16 +18,21 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace CryptoNote {
 namespace parameters {
 
 const uint64_t DIFFICULTY_TARGET                             = 120; // seconds
+const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY             = 24 * 60 * 60 / DIFFICULTY_TARGET;
 const uint64_t CRYPTONOTE_MAX_BLOCK_NUMBER                   = 500000000;
 const size_t   CRYPTONOTE_MAX_BLOCK_BLOB_SIZE                = 500000000;
 const size_t   CRYPTONOTE_MAX_TX_SIZE                        = 1000000000;
 const uint64_t CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX       = 0x89; // addresses start with "P"
+const uint64_t CRYPTONOTE_TX_PROOF_BASE58_PREFIX              = 3576968; // (0x369488), starts with "Proof..."
+const uint64_t CRYPTONOTE_RESERVE_PROOF_BASE58_PREFIX        = 44907175188; // (0xa74ad1d14), starts with "RsrvPrf..."
+const uint64_t CRYPTONOTE_KEYS_SIGNATURE_BASE58_PREFIX       = 176103705; // (0xa7f2119), starts with "SigV1..."
 const size_t   CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW          = 10;
 const size_t   CRYPTONOTE_TX_SPENDABLE_AGE                   = 6;
 const uint64_t CRYPTONOTE_BLOCK_FUTURE_TIME_LIMIT            = DIFFICULTY_TARGET * 7;
@@ -54,12 +59,20 @@ const size_t   CRYPTONOTE_DISPLAY_DECIMAL_POINT              = 10;
 
 const uint64_t MINIMUM_FEE                                   = UINT64_C(100000000);
 const uint64_t MAXIMUM_FEE                                   = UINT64_C(100000000);
+const uint64_t MINIMUM_FEE_V1                                = UINT64_C(100000000);
+const uint64_t MINIMUM_FEE_V2                                = INT64_C(1000000000);
 const uint64_t DEFAULT_DUST_THRESHOLD                        = UINT64_C(100000000);
 const uint64_t MIN_TX_MIXIN_SIZE                             = 0;
 const uint64_t MAX_TX_MIXIN_SIZE                             = 20;
-const uint64_t MAX_TRANSACTION_SIZE_LIMIT                    = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT / 4 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;	//fork ready
+const uint64_t MAX_EXTRA_SIZE                                = 1024;
 
-const uint64_t EXPECTED_NUMBER_OF_BLOCKS_PER_DAY             = 24 * 60 * 60 / DIFFICULTY_TARGET;
+const uint64_t MAX_TRANSACTION_SIZE_LIMIT                    = CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_CURRENT / 4 - CRYPTONOTE_COINBASE_BLOB_RESERVED_SIZE;
+
+const size_t   DANDELION_EPOCH                               = 600;
+const size_t   DANDELION_STEMS                               = 2;
+const size_t   DANDELION_STEM_EMBARGO                        = 173;
+const uint8_t  DANDELION_STEM_TX_PROPAGATION_PROBABILITY     = 90;
+
 const size_t   DIFFICULTY_WINDOW                             = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY; // blocks
 const size_t   DIFFICULTY_WINDOW_V2                          = 17; // blocks
 const size_t   DIFFICULTY_WINDOW_V3                          = 60 + 1; //blocks
@@ -90,15 +103,15 @@ const size_t   FUSION_TX_MIN_IN_OUT_COUNT_RATIO              = 4;
 
 const uint32_t UPGRADE_HEIGHT_V2                             = 1;
 const uint32_t UPGRADE_HEIGHT_V3                             = 2;
-const uint32_t UPGRADE_HEIGHT_V4                             = 20890;
+const uint32_t UPGRADE_HEIGHT_V4                             = 20891;
 const uint32_t UPGRADE_HEIGHT_V5                             = 161170;
 const uint32_t UPGRADE_HEIGHT_V6                             = 10000000;
 
 const uint32_t DROP_MM_HEIGHT                                = 252000; //231500; //251300;
-const uint32_t BAN_CHECK_INTERVAL							 = 60;
+const uint32_t BAN_CHECK_INTERVAL                            = 60;
 
-const unsigned UPGRADE_VOTING_THRESHOLD						 = 90; // percent
-const uint32_t UPGRADE_VOTING_WINDOW                       	 = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY;  // blocks
+const unsigned UPGRADE_VOTING_THRESHOLD                      = 90; // percent
+const uint32_t UPGRADE_VOTING_WINDOW                         = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY;  // blocks
 const uint32_t UPGRADE_WINDOW                                = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY;  // blocks
 static_assert(0 < UPGRADE_VOTING_THRESHOLD && UPGRADE_VOTING_THRESHOLD <= 100, "Bad UPGRADE_VOTING_THRESHOLD");
 static_assert(UPGRADE_VOTING_WINDOW > 1, "Bad UPGRADE_VOTING_WINDOW");
@@ -114,6 +127,8 @@ const char     MINER_CONFIG_FILE_NAME[]                      = "miner_conf.json"
 
 const char     CRYPTONOTE_NAME[]                             = "pluracoin";
 const char     GENESIS_COINBASE_TX_HEX[]                     = "010a01ff0001bda282a38eab04029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd088071210189788f801e9eb598528bc4a0f2e8dd213fb193df21e1b2d5c1522fc0b529c751";
+const char     DNS_CHECKPOINTS_HOST[]                        = "checkpoints.pluracoin.org";
+const char     VERSIOND_HOST[]                               = "versiond1.pluracoin.org";
 
 const uint8_t  CURRENT_TRANSACTION_VERSION                   =  1;
 const uint8_t  BLOCK_MAJOR_VERSION_1                         =  1;
@@ -130,12 +145,37 @@ const size_t   COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT         =  1000;
 
 const int      P2P_DEFAULT_PORT                              =  19200;
 const int      RPC_DEFAULT_PORT                              =  19201;
+const int      RPC_DEFAULT_SSL_PORT                          =  32448;
+const int      WALLET_RPC_DEFAULT_PORT                       =  15000;
+const int      WALLET_RPC_DEFAULT_SSL_PORT                   =  15100;
+const int      GATE_RPC_DEFAULT_PORT                         =  16000;
+const int      GATE_RPC_DEFAULT_SSL_PORT                     =  16100;
+const char     RPC_DEFAULT_CHAIN_FILE[]                      = "rpc_server.crt";
+const char     RPC_DEFAULT_KEY_FILE[]                        = "rpc_server.key";
+const char     RPC_DEFAULT_DH_FILE[]                         = "rpc_server.pem";
 
 const size_t   P2P_LOCAL_WHITE_PEERLIST_LIMIT                =  1000;
 const size_t   P2P_LOCAL_GRAY_PEERLIST_LIMIT                 =  5000;
 
+// This defines our current P2P network version
+// and the minimum version for communication between nodes
+const uint8_t  P2P_VERSION_1                                 = 1;
+const uint8_t  P2P_VERSION_2                                 = 2;
+const uint8_t  P2P_VERSION_3                                 = 3;
+const uint8_t  P2P_VERSION_4                                 = 4;
+const uint8_t  P2P_CURRENT_VERSION                           = P2P_VERSION_4;
+const uint8_t  P2P_MINIMUM_VERSION                           = 1;
+
+// This defines the number of versions ahead we must see peers before
+// we start displaying warning messages that we need to upgrade our software
+const uint8_t  P2P_UPGRADE_WINDOW                            = 2;
+
+// This defines the minimum P2P version required for lite blocks propogation
+const uint8_t  P2P_LITE_BLOCKS_PROPOGATION_VERSION           = 3;
+
 const size_t   P2P_CONNECTION_MAX_WRITE_BUFFER_SIZE          = 64 * 1024 * 1024; // 64 MB
 const uint32_t P2P_DEFAULT_CONNECTIONS_COUNT                 = 8;
+const size_t   P2P_DEFAULT_ANCHOR_CONNECTIONS_COUNT          = 2;
 const size_t   P2P_DEFAULT_WHITELIST_CONNECTIONS_PERCENT     = 70;
 const uint32_t P2P_DEFAULT_HANDSHAKE_INTERVAL                = 60;            // seconds
 const uint32_t P2P_DEFAULT_PACKET_MAX_SIZE                   = 50000000;      // 50000000 bytes maximum packet size
@@ -151,49 +191,23 @@ const uint32_t P2P_IDLE_CONNECTION_KILL_INTERVAL             = (5 * 60);      //
 
 const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "";
 
-struct CheckpointData {
+const char* const SEED_NODES[] = {  
+    "78.47.248.206:19200",  
+    "88.198.105.197:19200", 
+    "78.47.100.215:19200",  
+    "s4.pluracoin.org:19200",   
+    "s5.pluracoin.org:19200"    
+    };
+
+/*struct CheckpointData {
   uint32_t height;
   const char* blockId;
-};
+};*/
 	
-const std::initializer_list<CheckpointData> CHECKPOINTS = {
-    {3000,	"bec581b36c62e08ffd7520b7784366ec34b600edda6418a6893ef0fc7ecb8d91"},
-    {10000, "f199869dd20c764353585fbf061361c194ac289eb68b21c0bfb4d7c8d4492beb"},
-    {20000, "b1f574bfd11e67e64041791c45fab84b80ba18739e54022d0c1d09c74dd74fe4"},
-    {30000, "e6687632048c3db6214c433a18760d132bd656c928037aea8fd78b2cd9ebc388"},
-    {40000, "9dabc1aedf31fea10d556c953706348bb1144f9ee0a53f78f56385ef2015fb24"},
-    {50000, "d0457b4bcf6bcc4cb42d94271f5a5c40273f3fd9c12bc5f5c398ce4d69d0e4bf"},
-    {60000, "f88662c0f2b842ecbd4f57d53e7cd210d9dab9ebd91270ccbacc6de522b53427"},
-    {70000, "2f2706b936fee7bd46f93b0d529b7233675ac137b434415b0b1f74eee50fc44b"},
-    {80000, "3bae6e8ef6bb03a0d21b593188d48b8aa61f4fcddaeea7fab099ba3d9d59515f"},
-    {90000, "45fb3e70defa0c0e1a1074466f8a29563738fdf8b54daa0b756625700f0c6e90"},
-    {100000, "f17e875f4dd5b8e48f01c33f9420740e45ab279b4731365acbeb10e230209613"},
-    {110000, "f50905a01d4706d3b69419b0b255da055c93d46a84689563a20b1609126a3597"},
-    {130000, "1f0d85bea1758ec7d347f3b72d71fa45b994a5afd77a74a656f65fa95858c716"},
-    {140000, "082e73ec314f08eec0df93de9cf549a8ac2fadc1cfb76a87e434298eb412d7ed"},
-    {150000, "b1a2b72767718668bf6b06a338918ca0d034ee25386e24883c088111251b8dc2"},
-    {161170, "a426bb1abcfa32d13017ca5e662a6eb2e6d0b006b56d85368a5cde7cbcd24b8e"},
-    {161500, "969170b96fbd1fce93229a9cc4d18419a52f6c4de299ca6f70643612ce7543a0"},
-    {165000, "b369f35f9ef33f374e307d849faa72b48ba05ea6860b9fb0b1435ae6a4e40cf1"},
-    {170000, "9e060b20ed9ab12fea63c84a83721cc1db7af4d7c104ca49eb0eb188ca50c79f"},
-    {180000, "c3821860802c8a6b57de86f42772edac2e2a0c640b7982fc4c8767464c9537b5"},
-    {190000, "4b7e9611a89d9df558d67ebf83436c21376396b913a98982611b21fe9b46a011"},
-    {197000, "c474faae20a40ee376e6a8631e20536584238f761a1d43c7a6a5271498a610be"},
-    {225000, "8fd5317102b35381afce2738aeb71e083545152386aa6679dd651d278b3cce07"},
-    {230000, "cdae855ee64249bb4763e2bdef583f2dafddb71b97bd340addfedef97980a730"},
-    {234000, "f57329344e7c43658cd816fb343b316c74eb807fdf1a029acd8b7dfdcd3abf6f"},
-    {245000, "d28f1fff23ad30ec2f118fa58d819353b9523fc290319e2dc275672e4eacacc4"},
-    {280000, "3ee49db6b7797eb05fb33378f550a5bce1eb75db288f5bbd8c86096e0ea006c9"},
-    {300000, "8a0fabd20ab7e4c3612a2c7b45637488345226b8e42b9406e006c4384e753326"},
-    {325000, "e1fccd7ee89374ade6650d7e1a01710abd471f73bf627b772851dbd9c34cc53a"},
-    {350000, "bc1a62a7b5bd73a96e375c6ae88217611786251b9acab245218f6465d0585a70"},
-    {360500, "0c4023df7712c6457d90e7d50b7528d4ffb6d4ca390dee3dae8afece087bfc5c"}
 
-};
 
 } // CryptoNote
 
-#define ALLOW_DEBUG_COMMANDS
 
 
 

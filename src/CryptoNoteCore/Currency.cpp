@@ -25,8 +25,8 @@
 #include <boost/lexical_cast.hpp>
 #include "../Common/Base58.h"
 #include "../Common/int-util.h"
+#include "../Common/FormatTools.h"
 #include "../Common/StringTools.h"
-
 #include "Account.h"
 #include "CryptoNoteBasicImpl.h"
 #include "CryptoNoteFormatUtils.h"
@@ -130,23 +130,47 @@ namespace CryptoNote {
 		}
 	}
 
-	uint32_t Currency::upgradeHeight(uint8_t majorVersion) const {
-		if (majorVersion == BLOCK_MAJOR_VERSION_2) {
+	uint32_t Currency::upgradeHeight(uint8_t majorVersion) const {        
+		if (majorVersion == BLOCK_MAJOR_VERSION_2) {            
 			return m_upgradeHeightV2;
 		}
-		else if (majorVersion == BLOCK_MAJOR_VERSION_3) {
+		else if (majorVersion == BLOCK_MAJOR_VERSION_3) {            
 			return m_upgradeHeightV3;
 		}
-		else if (majorVersion == BLOCK_MAJOR_VERSION_4) {
+		else if (majorVersion == BLOCK_MAJOR_VERSION_4) {            
 			return m_upgradeHeightV4;
 		}
-        else if (majorVersion == BLOCK_MAJOR_VERSION_5) {        	
+        else if (majorVersion == BLOCK_MAJOR_VERSION_5) {
 			return m_upgradeHeightV5;
 		}
-		else {
+		else {            
 			return static_cast<uint32_t>(-1);
 		}
 	}
+
+    uint64_t Currency::calculateReward(uint64_t alreadyGeneratedCoins) const {
+        // assert(alreadyGeneratedCoins <= m_moneySupply);
+        assert(m_emissionSpeedFactor > 0 && m_emissionSpeedFactor <= 8 * sizeof(uint64_t));
+
+        uint64_t baseReward = (m_moneySupply - alreadyGeneratedCoins) >> m_emissionSpeedFactor;
+
+        // Tail emission
+        if (alreadyGeneratedCoins + CryptoNote::parameters::TAIL_EMISSION_REWARD >= m_moneySupply || baseReward < CryptoNote::parameters::TAIL_EMISSION_REWARD)
+        {
+          // flat rate tail emission reward,
+          // inflation slowly diminishing in relation to supply
+          //baseReward = CryptoNote::parameters::TAIL_EMISSION_REWARD;
+          // changed to
+          // Friedman's k-percent rule,
+          // inflation 2% of total coins in circulation per year
+          // according to Whitepaper v. 1, p. 16 (with change of 1% to 2%)
+          const uint64_t blocksInOneYear = expectedNumberOfBlocksPerDay() * 365;
+          uint64_t twoPercentOfEmission = static_cast<uint64_t>(static_cast<double>(alreadyGeneratedCoins) / 100.0 * 2.0);
+          baseReward = twoPercentOfEmission / blocksInOneYear;
+        }
+
+        return baseReward;
+      }
 
 	bool Currency::getBlockReward(uint8_t blockMajorVersion, size_t medianSize, size_t currentBlockSize, uint64_t alreadyGeneratedCoins, uint64_t fee, uint64_t& reward, int64_t& emissionChange, uint32_t height) const {
 
@@ -294,7 +318,7 @@ namespace CryptoNote {
 
 		tx.version = CURRENT_TRANSACTION_VERSION;
 		//lock
-		tx.unlockTime = height + m_minedMoneyUnlockWindow;
+		tx.unlockTime = height + minedMoneyUnlockWindow();
 		tx.inputs.push_back(in);
 		return true;
 	}
@@ -401,77 +425,53 @@ namespace CryptoNote {
 	}
 
 	std::string Currency::formatAmount(uint64_t amount) const {
-		std::string s = std::to_string(amount);
-		if (s.size() < m_numberOfDecimalPlaces + 1) {
-			s.insert(0, m_numberOfDecimalPlaces + 1 - s.size(), '0');
-		}
-		s.insert(s.size() - m_numberOfDecimalPlaces, ".");
-		return s;
+		return Common::Format::formatAmount(amount);
 	}
 
 	std::string Currency::formatAmount(int64_t amount) const {
-		std::string s = formatAmount(static_cast<uint64_t>(std::abs(amount)));
-
-		if (amount < 0) {
-			s.insert(0, "-");
-		}
-
-		return s;
+    return Common::Format::formatAmount(amount);
 	}
 
 	bool Currency::parseAmount(const std::string& str, uint64_t& amount) const {
-		std::string strAmount = str;
-		boost::algorithm::trim(strAmount);
-
-		size_t pointIndex = strAmount.find_first_of('.');
-		size_t fractionSize;
-		if (std::string::npos != pointIndex) {
-			fractionSize = strAmount.size() - pointIndex - 1;
-			while (m_numberOfDecimalPlaces < fractionSize && '0' == strAmount.back()) {
-				strAmount.erase(strAmount.size() - 1, 1);
-				--fractionSize;
-			}
-			if (m_numberOfDecimalPlaces < fractionSize) {
-				return false;
-			}
-			strAmount.erase(pointIndex, 1);
-		}
-		else {
-			fractionSize = 0;
-		}
-
-		if (strAmount.empty()) {
-			return false;
-		}
-
-		if (!std::all_of(strAmount.begin(), strAmount.end(), ::isdigit)) {
-			return false;
-		}
-
-		if (fractionSize < m_numberOfDecimalPlaces) {
-			strAmount.append(m_numberOfDecimalPlaces - fractionSize, '0');
-		}
-
-		return Common::fromString(strAmount, amount);
+		return Common::Format::parseAmount(str, amount);
 	}
 
-	// Copyright (c) 2017-2018 Zawy 
-	// http://zawy1.blogspot.com/2017/12/using-difficulty-to-get-constant-value.html
-	// Moore's law application by Sergey Kozlov
-	uint64_t Currency::getMinimalFee(uint64_t dailyDifficulty, uint64_t reward, uint64_t avgHistoricalDifficulty, uint64_t medianHistoricalReward, uint32_t height) const {
-		const uint64_t blocksInTwoYears = CryptoNote::parameters::EXPECTED_NUMBER_OF_BLOCKS_PER_DAY * 365 * 2;
-		const double gauge = double(0.25);
-		uint64_t minimumFee(0);
-		double dailyDifficultyMoore = dailyDifficulty / pow(2, static_cast<double>(height) / static_cast<double>(blocksInTwoYears));
-		double minFee = gauge * CryptoNote::parameters::COIN * static_cast<double>(avgHistoricalDifficulty) 
-			/ dailyDifficultyMoore * static_cast<double>(reward)
-			/ static_cast<double>(medianHistoricalReward);
-		if (minFee == 0 || !std::isfinite(minFee))
-			return CryptoNote::parameters::MAXIMUM_FEE; // zero test 
-		minimumFee = static_cast<uint64_t>(minFee);
+  // The idea is based on Zawy's post
+  // http://zawy1.blogspot.com/2017/12/using-difficulty-to-get-constant-value.html
+  // Moore's law application by Sergey Kozlov
+  uint64_t Currency::getMinimalFee(uint64_t avgCurrentDifficulty, uint64_t currentReward, uint64_t avgReferenceDifficulty, uint64_t avgReferenceReward, uint32_t height) const {
+    uint64_t minimumFee(0);
+    double minFee(0.0);
+    const double baseFee = static_cast<double>(250000000000);
+    const uint64_t blocksInTwoYears = expectedNumberOfBlocksPerDay() * 365 * 2;
+    double currentDifficultyMoore = static_cast<double>(avgCurrentDifficulty) / 
+                                    pow(2, static_cast<double>(height) / static_cast<double>(blocksInTwoYears));
+    minFee = baseFee * static_cast<double>(avgReferenceDifficulty) / currentDifficultyMoore *
+             static_cast<double>(currentReward) / static_cast<double>(avgReferenceReward);
 
-		return std::min<uint64_t>(CryptoNote::parameters::MAXIMUM_FEE, minimumFee);
-	}
+    // zero test 
+    if (minFee == 0 || !std::isfinite(minFee))
+      return CryptoNote::parameters::MAXIMUM_FEE;
+
+    minimumFee = static_cast<uint64_t>(minFee);
+
+    if (height > CryptoNote::parameters::UPGRADE_HEIGHT_V4) {
+      // Make all insignificant digits zero
+      uint64_t i = 1000000000;
+      while (i > 1) {
+        if (minimumFee > i * 100) { minimumFee = ((minimumFee + i / 2) / i) * i; break; }
+        else { i /= 10; }
+      }
+    }
+
+    return std::min<uint64_t>(CryptoNote::parameters::MAXIMUM_FEE, minimumFee);
+  }
+
+  // All that exceeds 100 bytes is charged per byte,
+  // the cost of one byte is 1/100 of minimal fee
+  uint64_t Currency::getFeePerByte(const uint64_t txExtraSize, const uint64_t minFee) const {
+    return txExtraSize > 100 ? minFee / 100 * (txExtraSize - 100) : 0;
+  }
 
 	uint64_t Currency::roundUpMinFee(uint64_t minimalFee, int digits) const {
 		uint64_t ret(0);
@@ -597,7 +597,7 @@ namespace CryptoNote {
 		uint64_t nextDiffZ = low / timeSpan;
 
 		// minimum limit
-		if (nextDiffZ < 100000) {
+		if (!isTestnet() && nextDiffZ < 100000) {
 			nextDiffZ = 100000;
 		}
 
@@ -937,7 +937,6 @@ namespace CryptoNote {
 		upgradeHeightV3(parameters::UPGRADE_HEIGHT_V3);
 		upgradeHeightV4(parameters::UPGRADE_HEIGHT_V4);
 		upgradeHeightV5(parameters::UPGRADE_HEIGHT_V5);
-
 		upgradeVotingThreshold(parameters::UPGRADE_VOTING_THRESHOLD);
 		upgradeVotingWindow(parameters::UPGRADE_VOTING_WINDOW);
 		upgradeWindow(parameters::UPGRADE_WINDOW);

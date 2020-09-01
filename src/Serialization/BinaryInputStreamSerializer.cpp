@@ -39,6 +39,7 @@ void BinaryInputStreamSerializer::endObject() {
 
 bool BinaryInputStreamSerializer::beginArray(size_t& size, Common::StringView name) {
   readVarintAs<uint64_t>(stream, size);
+
   return true;
 }
 

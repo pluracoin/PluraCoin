@@ -225,7 +225,7 @@ TEST_F(tx_pool, add_one_tx)
   tx_verification_context tvc = boost::value_initialized<tx_verification_context>();
   
   ASSERT_TRUE(test.pool.add_tx(tx, tvc, false));
-  ASSERT_FALSE(tvc.m_verifivation_failed);
+  ASSERT_FALSE(tvc.m_verification_failed);
 };
 
 TEST_F(tx_pool, take_tx)
@@ -240,7 +240,7 @@ TEST_F(tx_pool, take_tx)
   tx_verification_context tvc = boost::value_initialized<tx_verification_context>();
 
   ASSERT_TRUE(test.pool.add_tx(tx, tvc, false));
-  ASSERT_FALSE(tvc.m_verifivation_failed);
+  ASSERT_FALSE(tvc.m_verification_failed);
 
   Transaction txOut;
   size_t blobSize;
@@ -262,13 +262,13 @@ TEST_F(tx_pool, double_spend_tx)
   tx_verification_context tvc = boost::value_initialized<tx_verification_context>();
 
   ASSERT_TRUE(test.pool.add_tx(tx, tvc, false));
-  ASSERT_FALSE(tvc.m_verifivation_failed);
+  ASSERT_FALSE(tvc.m_verification_failed);
 
   test.txGenerator.rv_acc.generate(); // generate new receiver address
   test.construct(test.m_currency.minimumFee(), 1, tx_double);
 
   ASSERT_FALSE(test.pool.add_tx(tx_double, tvc, false));
-  ASSERT_TRUE(tvc.m_verifivation_failed);
+  ASSERT_TRUE(tvc.m_verification_failed);
 }
 
 
@@ -480,8 +480,8 @@ TEST_F(tx_pool, RecentlyDeletedTransactionCannotBeAddedToTxPoolAgain) {
   ASSERT_TRUE(pool.add_tx(tx, tvc, false));
   ASSERT_FALSE(tvc.m_added_to_pool);
   ASSERT_FALSE(tvc.m_should_be_relayed);
-  ASSERT_FALSE(tvc.m_verifivation_failed);
-  ASSERT_FALSE(tvc.m_verifivation_impossible);
+  ASSERT_FALSE(tvc.m_verification_failed);
+  ASSERT_FALSE(tvc.m_verification_impossible);
 
   ASSERT_EQ(0, pool.get_transactions_count());
 }
@@ -511,8 +511,8 @@ TEST_F(tx_pool, RecentlyDeletedTransactionCanBeAddedAgainAfterSomeTime) {
   ASSERT_TRUE(pool.add_tx(tx, tvc, false));
   ASSERT_TRUE(tvc.m_added_to_pool);
   ASSERT_TRUE(tvc.m_should_be_relayed);
-  ASSERT_FALSE(tvc.m_verifivation_failed);
-  ASSERT_FALSE(tvc.m_verifivation_impossible);
+  ASSERT_FALSE(tvc.m_verification_failed);
+  ASSERT_FALSE(tvc.m_verification_impossible);
 
   ASSERT_EQ(1, pool.get_transactions_count());
 }
@@ -538,8 +538,8 @@ TEST_F(tx_pool, RecentlyDeletedTransactionCanBeAddedToTxPoolIfItIsReceivedInBloc
   ASSERT_TRUE(pool.add_tx(tx, tvc, true));
   ASSERT_TRUE(tvc.m_added_to_pool);
   ASSERT_TRUE(tvc.m_should_be_relayed);
-  ASSERT_FALSE(tvc.m_verifivation_failed);
-  ASSERT_FALSE(tvc.m_verifivation_impossible);
+  ASSERT_FALSE(tvc.m_verification_failed);
+  ASSERT_FALSE(tvc.m_verification_impossible);
 
   ASSERT_EQ(1, pool.get_transactions_count());
 }
@@ -603,8 +603,8 @@ TEST_F(tx_pool, TransactionThatWasDeletedLongAgoIsForgottenDuringTxPoolInitializ
   ASSERT_TRUE(pool->add_tx(tx, tvc, false));
   ASSERT_TRUE(tvc.m_added_to_pool);
   ASSERT_TRUE(tvc.m_should_be_relayed);
-  ASSERT_FALSE(tvc.m_verifivation_failed);
-  ASSERT_FALSE(tvc.m_verifivation_impossible);
+  ASSERT_FALSE(tvc.m_verification_failed);
+  ASSERT_FALSE(tvc.m_verification_impossible);
 
   ASSERT_EQ(1, pool->get_transactions_count());
 }
@@ -641,8 +641,8 @@ TEST_F(tx_pool, RecentlyDeletedTxInfoIsSerializedAndDeserialized) {
   ASSERT_TRUE(pool->add_tx(tx, tvc, false));
   ASSERT_FALSE(tvc.m_added_to_pool);
   ASSERT_FALSE(tvc.m_should_be_relayed);
-  ASSERT_FALSE(tvc.m_verifivation_failed);
-  ASSERT_FALSE(tvc.m_verifivation_impossible);
+  ASSERT_FALSE(tvc.m_verification_failed);
+  ASSERT_FALSE(tvc.m_verification_impossible);
 
   ASSERT_EQ(0, pool->get_transactions_count());
 
@@ -653,8 +653,8 @@ TEST_F(tx_pool, RecentlyDeletedTxInfoIsSerializedAndDeserialized) {
   ASSERT_TRUE(pool->add_tx(tx, tvc, false));
   ASSERT_TRUE(tvc.m_added_to_pool);
   ASSERT_TRUE(tvc.m_should_be_relayed);
-  ASSERT_FALSE(tvc.m_verifivation_failed);
-  ASSERT_FALSE(tvc.m_verifivation_impossible);
+  ASSERT_FALSE(tvc.m_verification_failed);
+  ASSERT_FALSE(tvc.m_verification_impossible);
 
   ASSERT_EQ(1, pool->get_transactions_count());
 }
@@ -672,8 +672,8 @@ TEST_F(tx_pool, TxPoolAcceptsValidFusionTransaction) {
   ASSERT_TRUE(pool->add_tx(tx, tvc, false));
   ASSERT_TRUE(tvc.m_added_to_pool);
   ASSERT_TRUE(tvc.m_should_be_relayed);
-  ASSERT_FALSE(tvc.m_verifivation_failed);
-  ASSERT_FALSE(tvc.m_verifivation_impossible);
+  ASSERT_FALSE(tvc.m_verification_failed);
+  ASSERT_FALSE(tvc.m_verification_impossible);
 }
 
 TEST_F(tx_pool, TxPoolDoesNotAcceptInvalidFusionTransaction) {
@@ -690,8 +690,8 @@ TEST_F(tx_pool, TxPoolDoesNotAcceptInvalidFusionTransaction) {
   ASSERT_FALSE(pool->add_tx(tx, tvc, false));
   ASSERT_FALSE(tvc.m_added_to_pool);
   ASSERT_FALSE(tvc.m_should_be_relayed);
-  ASSERT_TRUE(tvc.m_verifivation_failed);
-  ASSERT_FALSE(tvc.m_verifivation_impossible);
+  ASSERT_TRUE(tvc.m_verification_failed);
+  ASSERT_FALSE(tvc.m_verification_impossible);
 }
 
 namespace {

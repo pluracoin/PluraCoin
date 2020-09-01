@@ -1,4 +1,6 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
+// Copyright (c) 2014-2016, The Monero Project
+// Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
 // This file is part of Bytecoin.
 //
@@ -89,7 +91,7 @@ public:
   virtual void synchronizationCompleted(std::error_code result) {}
   virtual void actualBalanceUpdated(uint64_t actualBalance) {}
   virtual void pendingBalanceUpdated(uint64_t pendingBalance) {}
-  virtual void unmixableBalanceUpdated(uint64_t dustBalance) {}
+  virtual void unmixableBalanceUpdated(uint64_t unmixableBalance) {}
   virtual void externalTransactionCreated(TransactionId transactionId) {}
   virtual void sendTransactionCompleted(TransactionId transactionId, std::error_code result) {}
   virtual void transactionUpdated(TransactionId transactionId) {}
@@ -103,11 +105,12 @@ public:
 
   virtual void initAndGenerate(const std::string& password) = 0;
   virtual void initAndGenerateDeterministic(const std::string& password) = 0;
-  virtual Crypto::SecretKey generateKey(const std::string& password, const Crypto::SecretKey& recovery_param = Crypto::SecretKey(), bool recover = false, bool two_random = false) = 0;
   virtual void initAndLoad(std::istream& source, const std::string& password) = 0;
   virtual void initWithKeys(const AccountKeys& accountKeys, const std::string& password) = 0;
+  virtual void initWithKeys(const AccountKeys& accountKeys, const std::string& password, const uint32_t scanHeight) = 0;
   virtual void shutdown() = 0;
   virtual void reset() = 0;
+  virtual bool tryLoadWallet(std::istream& source, const std::string& password) = 0;
 
   virtual void save(std::ostream& destination, bool saveDetailed = true, bool saveCache = true) = 0;
 
@@ -117,7 +120,7 @@ public:
 
   virtual uint64_t actualBalance() = 0;
   virtual uint64_t pendingBalance() = 0;
-  virtual uint64_t dustBalance() = 0;
+  virtual uint64_t unmixableBalance() = 0;
 
   virtual size_t getTransactionCount() = 0;
   virtual size_t getTransferCount() = 0;
@@ -137,15 +140,20 @@ public:
 
   virtual TransactionId sendTransaction(const WalletLegacyTransfer& transfer, uint64_t fee, const std::string& extra = "", uint64_t mixIn = 0, uint64_t unlockTimestamp = 0) = 0;
   virtual TransactionId sendTransaction(const std::vector<WalletLegacyTransfer>& transfers, uint64_t fee, const std::string& extra = "", uint64_t mixIn = 0, uint64_t unlockTimestamp = 0) = 0;
-  virtual TransactionId sendDustTransaction(const std::vector<WalletLegacyTransfer>& transfers, uint64_t fee, const std::string& extra = "", uint64_t mixIn = 0, uint64_t unlockTimestamp = 0) = 0;
   virtual TransactionId sendFusionTransaction(const std::list<TransactionOutputInformation>& fusionInputs, uint64_t fee, const std::string& extra = "", uint64_t mixIn = 0, uint64_t unlockTimestamp = 0) = 0;
   virtual std::error_code cancelTransaction(size_t transferId) = 0;
 
   virtual size_t estimateFusion(const uint64_t& threshold) = 0;
   virtual std::list<TransactionOutputInformation> selectFusionTransfersToSend(uint64_t threshold, size_t minInputCount, size_t maxInputCount) = 0;
-      
-  virtual std::string sign_message(const std::string &data) = 0;
-  virtual bool verify_message(const std::string &data, const CryptoNote::AccountPublicAddress &address, const std::string &signature) = 0;
+
+  virtual bool getTransactionInformation(const Crypto::Hash& transactionHash, TransactionInformation& info,
+      uint64_t* amountIn = nullptr, uint64_t* amountOut = nullptr) const = 0;
+  virtual std::vector<TransactionOutputInformation> getTransactionOutputs(const Crypto::Hash& transactionHash, uint32_t flags = ITransfersContainer::IncludeDefault) const = 0;
+  virtual std::vector<TransactionOutputInformation> getTransactionInputs(const Crypto::Hash& transactionHash, uint32_t flags) const = 0;
+  virtual bool isFusionTransaction(const WalletLegacyTransaction& walletTx) const = 0;
+
+  virtual std::string sign_message(const std::string &message) = 0;
+  virtual bool verify_message(const std::string &message, const CryptoNote::AccountPublicAddress &address, const std::string &signature) = 0;
 
   virtual bool isTrackingWallet() = 0;
 };

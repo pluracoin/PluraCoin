@@ -48,10 +48,15 @@ JsonRpcServer::JsonRpcServer(System::Dispatcher& sys, System::Event& stopEvent, 
 {
 }
 
-void JsonRpcServer::start(const std::string& bindAddress, uint16_t bindPort, const std::string& m_rpcUser, const std::string& m_rpcPassword) {
-  HttpServer::start(bindAddress, bindPort, m_rpcUser, m_rpcPassword);
+void JsonRpcServer::start(const std::string& bindAddress, uint16_t bindPort, uint16_t bindPortSSL,
+                          bool server_ssl_enable, const std::string& m_rpcUser, const std::string& m_rpcPassword) {
+  HttpServer::start(bindAddress, bindPort, bindPortSSL, server_ssl_enable, m_rpcUser, m_rpcPassword);
   stopEvent.wait();
   HttpServer::stop();
+}
+
+void JsonRpcServer::setCerts(const std::string& chain_file, const std::string& key_file, const std::string& dh_file){
+  HttpServer::setCerts(chain_file, key_file, dh_file);
 }
 
 void JsonRpcServer::processRequest(const CryptoNote::HttpRequest& req, CryptoNote::HttpResponse& resp) {
@@ -68,6 +73,12 @@ void JsonRpcServer::processRequest(const CryptoNote::HttpRequest& req, CryptoNot
       } catch (std::runtime_error&) {
         logger(Logging::DEBUGGING) << "Couldn't parse request: \"" << req.getBody() << "\"";
         makeJsonParsingErrorResponse(jsonRpcResponse);
+        
+        resp.addHeader("Content-Type", "application/json");
+        resp.addHeader("Access-Control-Allow-Origin", "*");
+        resp.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        resp.addHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+
         resp.setStatus(CryptoNote::HttpResponse::STATUS_200);
         resp.setBody(jsonRpcResponse.toString());
         return;

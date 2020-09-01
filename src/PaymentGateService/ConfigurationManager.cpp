@@ -78,7 +78,7 @@ bool ConfigurationManager::init(int argc, char** argv) {
   }
 
   if (cmdOptions.count("version") > 0) {
-    std::cout << "walletd v." << PROJECT_VERSION;
+    std::cout << "walletd v" << PROJECT_VERSION_LONG;
     return false;
   }
 
@@ -113,6 +113,10 @@ bool ConfigurationManager::init(int argc, char** argv) {
 
   if (cmdOptions["local"].as<bool>()) {
     startInprocess = true;
+  }
+
+  if (gateConfiguration.containerFile.empty()) {
+    throw ConfigurationError("Сontainer file not set");
   }
 
   return true;

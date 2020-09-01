@@ -64,6 +64,7 @@ void AsyncConsoleReader::pause() {
 void AsyncConsoleReader::unpause() {
   start();
 } 
+
 void AsyncConsoleReader::stop() {
 
   if (m_stop) {
@@ -183,6 +184,7 @@ void ConsoleHandler::pause() {
 void ConsoleHandler::unpause() {
   m_consoleReader.unpause();
 }
+  
 void ConsoleHandler::wait() {
 
   try {

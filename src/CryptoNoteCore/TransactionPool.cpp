@@ -142,7 +142,7 @@ namespace CryptoNote {
     }
 
     const uint64_t fee = inputs_amount - outputs_amount;
-    bool isFusionTransaction = fee == 0 && m_currency.isFusionTransaction(tx, blobSize, m_core.get_current_blockchain_height());
+    bool isFusionTransaction = fee == 0 && m_currency.isFusionTransaction(tx, blobSize, m_core.getCurrentBlockchainHeight());
 
     //check key images for transaction if it is not kept by block
     if (!keptByBlock) {
@@ -248,6 +248,18 @@ namespace CryptoNote {
     removeTransaction(it);
     return true;
   }
+  bool tx_memory_pool::getTransaction(const Crypto::Hash& id, Transaction& tx) {
+    std::lock_guard<std::recursive_mutex> lock(m_transactions_lock);
+    auto it = m_transactions.find(id);
+    if (it == m_transactions.end()) {
+      return false;
+    }
+
+    auto& txd = *it;
+    tx = txd.tx;
+
+    return true;
+  }
   //---------------------------------------------------------------------------------
   size_t tx_memory_pool::get_transactions_count() const {
     std::lock_guard<std::recursive_mutex> lock(m_transactions_lock);
@@ -286,12 +298,12 @@ namespace CryptoNote {
       TransactionCheckInfo checkInfo(tx);
 	  if (m_validated_transactions.find(tx.id) != m_validated_transactions.end()) {
 		  ready_tx_ids.insert(tx.id);
-		  logger(DEBUGGING) << "MemPool - tx " << tx.id << " loaded from cache";
+		  logger(TRACE) << "MemPool - tx " << tx.id << " loaded from cache";
 	  }
 	  else if (is_transaction_ready_to_go(tx.tx, checkInfo)) {
 		  ready_tx_ids.insert(tx.id);
 		  m_validated_transactions.insert(tx.id);
-		  logger(DEBUGGING) << "MemPool - tx " << tx.id << " added to cache";
+		  logger(TRACE) << "MemPool - tx " << tx.id << " added to cache";
 	  }
     }
 
@@ -379,8 +391,8 @@ namespace CryptoNote {
         << "max_used_block_height: " << txd.maxUsedBlock.height << std::endl
         << "max_used_block_id: " << txd.maxUsedBlock.id << std::endl
         << "last_failed_height: " << txd.lastFailedBlock.height << std::endl
-		<< "last_failed_id: " << txd.lastFailedBlock.id << std::endl
-		<< "amount_out: " << get_outs_money_amount(txd.tx) << std::endl
+        << "last_failed_id: " << txd.lastFailedBlock.id << std::endl
+        << "amount_out: " << get_outs_money_amount(txd.tx) << std::endl
         << "fee_atomic_units: " << txd.fee << std::endl
         << "received_timestamp: " << txd.receiveTime << std::endl
         << "received: " << std::ctime(&txd.receiveTime) << std::endl;
@@ -401,20 +413,6 @@ namespace CryptoNote {
 
     BlockTemplate blockTemplate;
 
-    for (auto it = m_fee_index.rbegin(); it != m_fee_index.rend() && it->fee == 0; ++it) {
-      const auto& txd = *it;
-
-      if (m_currency.fusionTxMaxSize() < total_size + txd.blobSize) {
-        continue;
-      }
-
-      TransactionCheckInfo checkInfo(txd);
-      if (is_transaction_ready_to_go(txd.tx, checkInfo) && blockTemplate.addTransaction(txd.id, txd.tx)) {
-        total_size += txd.blobSize;
-        logger(DEBUGGING) << "Fusion transaction " << txd.id << " included to block template";
-      }
-    }
-
     for (auto i = m_fee_index.begin(); i != m_fee_index.end(); ++i) {
       const auto& txd = *i;
 
@@ -423,17 +421,22 @@ namespace CryptoNote {
         continue;
       }
 
+      tx_verification_context tvc = boost::value_initialized<tx_verification_context>();
+      if (!m_core.check_tx_fee(txd.tx, getObjectHash(txd.tx), txd.blobSize, tvc, m_core.getCurrentBlockchainHeight())) {
+        logger(DEBUGGING) << "Transaction " << txd.id << " not included to block template because fee is insufficient";
+        continue;
+      }
       TransactionCheckInfo checkInfo(txd);
-	  bool ready = false;
-	  if (m_validated_transactions.find(txd.id) != m_validated_transactions.end()) {
-		  ready = true;
-		  logger(DEBUGGING) << "Fill block template - tx added from cache: " << txd.id;
-	  }
-	  else if (is_transaction_ready_to_go(txd.tx, checkInfo)) {
-		  ready = true;
-		  m_validated_transactions.insert(txd.id);
-		  logger(DEBUGGING) << "Fill block template - tx added to cache: " << txd.id;
-	  }
+      bool ready = false;
+      if (m_validated_transactions.find(txd.id) != m_validated_transactions.end()) {
+        ready = true;
+        logger(DEBUGGING) << "Fill block template - tx added from cache: " << txd.id;
+      }
+      else if (is_transaction_ready_to_go(txd.tx, checkInfo)) {
+        ready = true;
+        m_validated_transactions.insert(txd.id);
+        logger(DEBUGGING) << "Fill block template - tx added to cache: " << txd.id;
+      }
 
       // update item state
       m_fee_index.modify(i, [&checkInfo](TransactionCheckInfo& item) {

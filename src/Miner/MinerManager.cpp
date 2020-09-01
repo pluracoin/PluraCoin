@@ -32,6 +32,9 @@
 
 using namespace CryptoNote;
 
+#if defined(WIN32)
+#undef ERROR
+#endif
 namespace Miner {
 
 namespace {
@@ -49,7 +52,7 @@ MinerEvent BlockchainUpdatedEvent() {
 }
 
 void adjustMergeMiningTag(Block& blockTemplate) {
-  if (blockTemplate.majorVersion >= BLOCK_MAJOR_VERSION_2) {
+  if (blockTemplate.majorVersion == BLOCK_MAJOR_VERSION_2 || blockTemplate.majorVersion >= BLOCK_MAJOR_VERSION_3) {
     CryptoNote::TransactionExtraMergeMiningTag mmTag;
     mmTag.depth = 0;
     if (!CryptoNote::get_aux_block_header_hash(blockTemplate, mmTag.merkleRoot)) {
@@ -207,7 +210,7 @@ void MinerManager::stopBlockchainMonitoring() {
 
 bool MinerManager::submitBlock(const Block& minedBlock, const std::string& daemonHost, uint16_t daemonPort) {
   try {
-    HttpClient client(m_dispatcher, daemonHost, daemonPort);
+    HttpClient client(m_dispatcher, daemonHost, daemonPort, false);
 
     COMMAND_RPC_SUBMITBLOCK::request request;
     request.emplace_back(Common::toHex(toBinaryArray(minedBlock)));
@@ -227,7 +230,7 @@ bool MinerManager::submitBlock(const Block& minedBlock, const std::string& daemo
 
 BlockMiningParameters MinerManager::requestMiningParameters(System::Dispatcher& dispatcher, const std::string& daemonHost, uint16_t daemonPort, const std::string& miningAddress) {
   try {
-    HttpClient client(dispatcher, daemonHost, daemonPort);
+    HttpClient client(dispatcher, daemonHost, daemonPort, false);
 
     COMMAND_RPC_GETBLOCKTEMPLATE::request request;
     request.wallet_address = miningAddress;

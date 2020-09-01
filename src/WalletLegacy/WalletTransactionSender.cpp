@@ -15,7 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "crypto/crypto.h" //for rand()
+#include "crypto/crypto.h"
+#include "crypto/random.h"
 #include "CryptoNoteCore/Account.h"
 #include "CryptoNoteCore/CryptoNoteFormatUtils.h"
 #include "CryptoNoteCore/CryptoNoteTools.h"
@@ -26,8 +27,6 @@
 #include "CryptoNoteCore/CryptoNoteBasicImpl.h"
 
 #include <Logging/LoggerGroup.h>
-
-#include <random>
 
 using namespace Crypto;
 
@@ -127,32 +126,6 @@ std::shared_ptr<WalletRequest> WalletTransactionSender::makeSendRequest(Transact
   }
 
   return doSendTransaction(context, events);
-}
-
-std::shared_ptr<WalletRequest> WalletTransactionSender::makeSendDustRequest(TransactionId& transactionId, std::deque<std::shared_ptr<WalletLegacyEvent>>& events,
-	const std::vector<WalletLegacyTransfer>& transfers, uint64_t fee, const std::string& extra, uint64_t mixIn, uint64_t unlockTimestamp) {
-
-	using namespace CryptoNote;
-
-	throwIf(transfers.empty(), error::ZERO_DESTINATION);
-	validateTransfersAddresses(transfers);
-	uint64_t neededMoney = countNeededMoney(fee, transfers);
-
-	std::shared_ptr<SendTransactionContext> context = std::make_shared<SendTransactionContext>();
-
-	context->foundMoney = selectDustTransfersToSend(neededMoney, m_currency.defaultDustThreshold(), context->selectedTransfers);
-	throwIf(context->foundMoney < neededMoney, error::WRONG_AMOUNT);
-
-	transactionId = m_transactionsCache.addNewTransaction(neededMoney, fee, extra, transfers, unlockTimestamp);
-	context->transactionId = transactionId;
-	context->mixIn = mixIn;
-
-	if (context->mixIn) {
-		std::shared_ptr<WalletRequest> request = makeGetRandomOutsRequest(context);
-		return request;
-	}
-
-	return doSendTransaction(context, events);
 }
 
 std::shared_ptr<WalletRequest> WalletTransactionSender::makeSendFusionRequest(TransactionId& transactionId, std::deque<std::shared_ptr<WalletLegacyEvent>>& events,
@@ -393,7 +366,7 @@ T popRandomValue(URNG& randomGenerator, std::vector<T>& vec) {
 }
 
 
-uint64_t WalletTransactionSender::selectTransfersToSend(uint64_t neededMoney, bool addDust, uint64_t dust, std::list<TransactionOutputInformation>& selectedTransfers) {
+uint64_t WalletTransactionSender::selectTransfersToSend(uint64_t neededMoney, bool addUnmixable, uint64_t dust, std::list<TransactionOutputInformation>& selectedTransfers) {
 
   std::vector<size_t> unusedTransfers;
   std::vector<size_t> unusedDust;
@@ -417,17 +390,15 @@ uint64_t WalletTransactionSender::selectTransfersToSend(uint64_t neededMoney, bo
     }
   }
 
-  std::default_random_engine randomGenerator(Crypto::rand<std::default_random_engine::result_type>());
-  bool selectOneUnmixable = addDust && !unusedUnmixable.empty();
   uint64_t foundMoney = 0;
 
-  while (foundMoney < neededMoney && (!unusedTransfers.empty() || !unusedDust.empty() || !unusedUnmixable.empty())) {
+  while (foundMoney < neededMoney && (!unusedTransfers.empty() || !unusedDust.empty() || (addUnmixable && !unusedUnmixable.empty()))) {
     size_t idx;
-    if (selectOneUnmixable) {
-      idx = popRandomValue(randomGenerator, unusedUnmixable);
-	  selectOneUnmixable = false;
+    std::mt19937 urng = Random::generator();
+    if (addUnmixable && !unusedUnmixable.empty()) {
+      idx = popRandomValue(urng, unusedUnmixable);
     } else {
-      idx = !unusedTransfers.empty() ? popRandomValue(randomGenerator, unusedTransfers) : popRandomValue(randomGenerator, unusedDust);
+      idx = !unusedTransfers.empty() ? popRandomValue(urng, unusedTransfers) : popRandomValue(urng, unusedDust);
     }
     selectedTransfers.push_back(outputs[idx]);
     foundMoney += outputs[idx].amount;
@@ -436,67 +407,5 @@ uint64_t WalletTransactionSender::selectTransfersToSend(uint64_t neededMoney, bo
   return foundMoney;
 
 }
-
-uint64_t WalletTransactionSender::selectDustTransfersToSend(uint64_t neededMoney, uint64_t dust, std::list<TransactionOutputInformation>& selectedTransfers) {
-
-	std::vector<size_t> unusedTransfers;
-	std::vector<size_t> unusedDust;
-	std::vector<size_t> unusedUnmixable;
-	uint64_t neededUnmixable = 0;
-
-	std::vector<TransactionOutputInformation> outputs;
-	m_transferDetails.getOutputs(outputs, ITransfersContainer::IncludeKeyUnlocked);
-
-	for (size_t i = 0; i < outputs.size(); ++i) {
-		const auto& out = outputs[i];
-		if (!m_transactionsCache.isUsed(out)) {
-			if (is_valid_decomposed_amount(out.amount)) {
-				if (dust < out.amount) {
-					unusedTransfers.push_back(i);
-				}
-				else {
-					unusedDust.push_back(i);
-				}
-			}
-			else {
-				unusedUnmixable.push_back(i);
-				neededUnmixable += out.amount;
-			}
-		}
-	}
-
-	std::default_random_engine randomGenerator(Crypto::rand<std::default_random_engine::result_type>());
-	uint64_t foundMoney = 0;
-	// Sweep unmixable
-	if (!unusedUnmixable.empty()) {
-		while (foundMoney < neededUnmixable && !unusedUnmixable.empty()) {
-			size_t idx;
-			idx = popRandomValue(randomGenerator, unusedUnmixable);
-			foundMoney += outputs[idx].amount;
-			selectedTransfers.push_back(outputs[idx]);
-		}
-	}
-	// Sweep dust
-	if (foundMoney < neededMoney) {
-		while (foundMoney < neededMoney && !unusedDust.empty()) {
-			size_t idx;
-			idx = popRandomValue(randomGenerator, unusedDust);
-			selectedTransfers.push_back(outputs[idx]);
-			foundMoney += outputs[idx].amount;
-		}
-	}
-	// Optimize larger amounts if needed
-	if (foundMoney < neededMoney) {
-		while (foundMoney < neededMoney && !unusedTransfers.empty()) {
-			size_t idx;
-			idx = popRandomValue(randomGenerator, unusedTransfers);
-			selectedTransfers.push_back(outputs[idx]);
-			foundMoney += outputs[idx].amount;
-		}
-	}
-	return foundMoney;
-
-}
-
 
 } /* namespace CryptoNote */

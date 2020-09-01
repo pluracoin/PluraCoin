@@ -29,6 +29,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/member.hpp>
 
+#include "CryptoTypes.h"
 #include "Common/Util.h"
 #include "Common/int-util.h"
 #include "Common/ObserverManager.h"
@@ -123,6 +124,7 @@ namespace CryptoNote {
 
     bool getTransactionIdsByPaymentId(const Crypto::Hash& paymentId, std::vector<Crypto::Hash>& transactionIds);
     bool getTransactionIdsByTimestamp(uint64_t timestampBegin, uint64_t timestampEnd, uint32_t transactionsNumberLimit, std::vector<Crypto::Hash>& hashes, uint64_t& transactionsNumberWithinTimestamps);
+    bool getTransaction(const Crypto::Hash& id, Transaction& tx);
 
     template<class t_ids_container, class t_tx_container, class t_missed_container>
     void getTransactions(const t_ids_container& txsIds, t_tx_container& txs, t_missed_container& missedTxs) {
@@ -205,7 +207,7 @@ namespace CryptoNote {
 
     Tools::ObserverManager<ITxPoolObserver> m_observerManager;
     const CryptoNote::Currency& m_currency;
-	CryptoNote::ICore& m_core;
+    CryptoNote::ICore& m_core;
     OnceInTimeInterval m_txCheckInterval;
     mutable std::recursive_mutex m_transactions_lock;
     key_images_container m_spent_key_images;

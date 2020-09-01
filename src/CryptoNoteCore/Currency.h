@@ -81,7 +81,9 @@ public:
   uint64_t coin() const { return m_coin; }
 
   uint64_t minimumFee() const { return m_minimumFee; }
-  uint64_t getMinimalFee(uint64_t dailyDifficulty, uint64_t reward, uint64_t avgHistoricalDifficulty, uint64_t medianHistoricalReward, uint32_t height) const;
+  uint64_t getMinimalFee(uint64_t avgCurrentDifficulty, uint64_t currentReward, uint64_t avgReferenceDifficulty, uint64_t avgReferenceReward, uint32_t height) const;
+  uint64_t getFeePerByte(const uint64_t txExtraSize, const uint64_t minFee) const;
+
   uint64_t defaultDustThreshold() const { return m_defaultDustThreshold; }
 
   uint64_t difficultyTarget() const { return m_difficultyTarget; }
@@ -139,6 +141,7 @@ public:
   const Block& genesisBlock() const { return m_genesisBlock; }
   const Crypto::Hash& genesisBlockHash() const { return m_genesisBlockHash; }
 
+  uint64_t calculateReward(uint64_t alreadyGeneratedCoins) const;
   bool getBlockReward(uint8_t blockMajorVersion, size_t medianSize, size_t currentBlockSize, uint64_t alreadyGeneratedCoins, uint64_t fee,
     uint64_t& reward, int64_t& emissionChange, uint32_t height) const;
   size_t maxBlockCumulativeSize(uint64_t height) const;

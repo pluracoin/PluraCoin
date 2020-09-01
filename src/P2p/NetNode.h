@@ -24,6 +24,7 @@
 #include <unordered_map>
 
 #include <boost/functional/hash.hpp>
+#include <boost/uuid/uuid.hpp>
 
 #include <System/Context.h>
 #include <System/ContextGroup.h>
@@ -148,15 +149,16 @@ namespace CryptoNote
     size_t get_outgoing_connections_count();
 
     CryptoNote::PeerlistManager& getPeerlistManager() { return m_peerlist; }
-    bool ban_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME, bool silent = true) override;
-    bool unban_host(const uint32_t address_ip, bool silent = true) override;
+    bool ban_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME) override;
+    bool unban_host(const uint32_t address_ip) override;    
     std::map<uint32_t, time_t> get_blocked_hosts() override { return m_blocked_hosts; };
     bool load_banlist_from_dns();
-    std::vector<std::string> load_seeds_from_dns();
+    std::vector<std::string> load_seeds_from_dns(bool testnet = false);
     bool check_daemon_version();
 
   private:
 
+    enum PeerType { anchor = 0, white, gray };
     int handleCommand(const LevinProtocol::Command& cmd, BinaryArray& buff_out, P2pConnectionContext& context, bool& handled);
 
     //----------------- commands handlers ----------------------------------------------
@@ -172,8 +174,9 @@ namespace CryptoNote
     bool init_config();
     bool make_default_config();
     bool store_config();
+#ifdef ALLOW_DEBUG_COMMANDS
     bool check_trust(const proof_of_trust& tr);
-    void initUpnp();
+#endif
 
     bool handshake(CryptoNote::LevinProtocol& proto, P2pConnectionContext& context, bool just_take_peerlist = false);
     bool timedSync();
@@ -188,30 +191,33 @@ namespace CryptoNote
     virtual bool invoke_notify_to_peer(int command, const BinaryArray& req_buff, const CryptoNoteConnectionContext& context) override;
     virtual void drop_connection(CryptoNoteConnectionContext& context, bool add_fail) override;
     virtual void for_each_connection(std::function<void(CryptoNote::CryptoNoteConnectionContext&, PeerIdType)> f) override;
-    virtual void externalRelayNotifyToAll(int command, const BinaryArray& data_buff) override;
+    virtual void externalRelayNotifyToAll(int command, const BinaryArray& data_buff, const net_connection_id* excludeConnection) override;
+    virtual void externalRelayNotifyToList(int command, const BinaryArray &data_buff, const std::list<boost::uuids::uuid> relayList) override;
 
     //-----------------------------------------------------------------------------------------------
     bool add_host_fail(const uint32_t address_ip);
-    bool block_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME, bool silent = true);
-    bool unblock_host(const uint32_t address_ip, bool silent = true);
-	bool handle_command_line(const boost::program_options::variables_map& vm);
-	bool is_remote_host_allowed(const uint32_t address_ip);
+    bool block_host(const uint32_t address_ip, time_t seconds = P2P_IP_BLOCKTIME);
+    bool unblock_host(const uint32_t address_ip);
+    bool handle_command_line(const boost::program_options::variables_map& vm);
+    bool is_remote_host_allowed(const uint32_t address_ip);
+    bool is_addr_recently_failed(const uint32_t address_ip);
     bool handleConfig(const NetNodeConfig& config);
     bool append_net_address(std::vector<NetworkAddress>& nodes, const std::string& addr);
     bool idle_worker();
     bool handle_remote_peerlist(const std::list<PeerlistEntry>& peerlist, time_t local_time, const CryptoNoteConnectionContext& context);
     bool get_local_node_data(basic_node_data& node_data);
 
-    bool merge_peerlist_with_local(const std::list<PeerlistEntry>& bs);
     bool fix_time_delta(std::list<PeerlistEntry>& local_peerlist, time_t local_time, int64_t& delta);
 
     bool connections_maker();
     bool make_new_connection_from_peerlist(bool use_white_list);
-    bool try_to_connect_and_handshake_with_new_peer(const NetworkAddress& na, bool just_take_peerlist = false, uint64_t last_seen_stamp = 0, bool white = true);
+    bool make_new_connection_from_anchor_peerlist(const std::vector<AnchorPeerlistEntry>& anchor_peerlist);
+    bool try_to_connect_and_handshake_with_new_peer(const NetworkAddress& na, bool just_take_peerlist = false, uint64_t last_seen_stamp = 0, PeerType peer_type = white, uint64_t first_seen_stamp = 0);
     bool is_peer_used(const PeerlistEntry& peer);
+    bool is_peer_used(const AnchorPeerlistEntry& peer);
     bool is_addr_connected(const NetworkAddress& peer);  
     bool try_ping(basic_node_data& node_data, P2pConnectionContext& context);
-    bool make_expected_connections_count(bool white_list, size_t expected_connections);
+    bool make_expected_connections_count(PeerType peer_type, size_t expected_connections);
     bool is_priority_node(const NetworkAddress& na);
 
     bool connect_to_peerlist(const std::vector<NetworkAddress>& peers);

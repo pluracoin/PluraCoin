@@ -1,20 +1,20 @@
 // Copyright (c) 2012-2017, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2018, The Karbo developers
 //
-// This file is part of Bytecoin.
+// This file is part of Karbo.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Karbo is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Karbo is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Karbo.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "BlockchainExplorerDataSerialization.h"
 
@@ -85,7 +85,7 @@ bool serializePod(T& v, Common::StringView name, CryptoNote::ISerializer& serial
 
 //namespace CryptoNote {
 
-void serialize(transaction_output_details& output, ISerializer& serializer) {
+void serialize(transactionOutputDetails2& output, ISerializer& serializer) {
   serializer(output.output, "output");
   serializer(output.globalIndex, "globalIndex");
 }
@@ -111,7 +111,7 @@ void serialize(MultisignatureInputDetails& inputMultisig, ISerializer& serialize
   serializer(inputMultisig.output, "output");
 }
 
-void serialize(transaction_input_details& input, ISerializer& serializer) {
+void serialize(transactionInputDetails2& input, ISerializer& serializer) {
   if (serializer.type() == ISerializer::OUTPUT) {
     BinaryVariantTagGetter tagGetter;
     uint8_t tag = boost::apply_visitor(tagGetter, input);
@@ -137,9 +137,10 @@ void serialize(TransactionExtraDetails2& extra, ISerializer& serializer) {
   serializePod(extra.publicKey, "publicKey", serializer);
   serializer(extra.nonce, "nonce");
   serializeAsBinary(extra.raw, "raw", serializer);
+  serializer(extra.size, "size");
 }
 
-void serialize(TransactionDetails2& transaction, ISerializer& serializer) {
+void serialize(TransactionDetails& transaction, ISerializer& serializer) {
   serializePod(transaction.hash, "hash", serializer);
   serializer(transaction.size, "size");
   serializer(transaction.fee, "fee");
@@ -148,6 +149,7 @@ void serialize(TransactionDetails2& transaction, ISerializer& serializer) {
   serializer(transaction.mixin, "mixin");
   serializer(transaction.unlockTime, "unlockTime");
   serializer(transaction.timestamp, "timestamp");
+  serializer(transaction.version, "version");
   serializePod(transaction.paymentId, "paymentId", serializer);
   serializer(transaction.inBlockchain, "inBlockchain");
   serializePod(transaction.blockHash, "blockHash", serializer);
@@ -184,15 +186,19 @@ void serialize(TransactionDetails2& transaction, ISerializer& serializer) {
   }
 }
 
-void serialize(BlockDetails2& block, ISerializer& serializer) {
+void serialize(BlockDetails& block, ISerializer& serializer) {
   serializer(block.majorVersion, "majorVersion");
   serializer(block.minorVersion, "minorVersion");
   serializer(block.timestamp, "timestamp");
   serializePod(block.prevBlockHash, "prevBlockHash", serializer);
+  serializePod(block.proofOfWork, "proofOfWork", serializer);
   serializer(block.nonce, "nonce");
+  serializer(block.isOrphaned, "isOrphaned");
   serializer(block.height, "index");
+  serializer(block.depth, "depth");
   serializePod(block.hash, "hash", serializer);
   serializer(block.difficulty, "difficulty");
+  serializer(block.cumulativeDifficulty, "cumulativeDifficulty");
   serializer(block.reward, "reward");
   serializer(block.baseReward, "baseReward");
   serializer(block.blockSize, "blockSize");
@@ -200,6 +206,7 @@ void serialize(BlockDetails2& block, ISerializer& serializer) {
   serializer(block.alreadyGeneratedCoins, "alreadyGeneratedCoins");
   serializer(block.alreadyGeneratedTransactions, "alreadyGeneratedTransactions");
   serializer(block.sizeMedian, "sizeMedian");
+  serializer(block.effectiveSizeMedian, "effectiveSizeMedian");
   serializer(block.penalty, "penalty");
   serializer(block.totalFeeAmount, "totalFeeAmount");
   serializer(block.transactions, "transactions");

@@ -28,7 +28,7 @@
 #include "Rpc/RpcServer.h"
 
 namespace CryptoNote {
-class core;
+class Core;
 class NodeServer;
 class ICryptoNoteProtocolQuery;
 }
@@ -36,7 +36,7 @@ class ICryptoNoteProtocolQuery;
 class DaemonCommandsHandler
 {
 public:
-  DaemonCommandsHandler(CryptoNote::core& core, CryptoNote::NodeServer& srv, Logging::LoggerManager& log, const CryptoNote::ICryptoNoteProtocolQuery& protocol, CryptoNote::RpcServer* prpc_server);
+  DaemonCommandsHandler(CryptoNote::Core& core, CryptoNote::NodeServer& srv, Logging::LoggerManager& log, const CryptoNote::ICryptoNoteProtocolQuery& protocol, CryptoNote::RpcServer* prpc_server);
 
   bool start_handling() {
     m_consoleHandler.start();
@@ -50,7 +50,7 @@ public:
 private:
 
   Common::ConsoleHandler m_consoleHandler;
-  CryptoNote::core& m_core;
+  CryptoNote::Core& m_core;
   CryptoNote::NodeServer& m_srv;
   Logging::LoggerRef logger;
   Logging::LoggerManager& m_logManager;
@@ -58,7 +58,7 @@ private:
   CryptoNote::RpcServer* m_prpc_server;
   
   std::string get_commands_str();
-  std::string get_mining_speed(uint32_t hr);
+  std::string get_mining_speed(uint64_t hr);
   float get_sync_percentage(uint64_t height, uint64_t target_height);
   bool print_block_by_height(uint32_t height);
   bool print_block_by_hash(const std::string& arg);
@@ -86,4 +86,5 @@ private:
   bool ban(const std::vector<std::string>& args);
   bool unban(const std::vector<std::string>& args);
   bool status(const std::vector<std::string>& args);
+  bool save(const std::vector<std::string>& args);
 };

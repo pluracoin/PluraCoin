@@ -1,4 +1,5 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
+// Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
 // This file is part of Bytecoin.
 //
@@ -22,7 +23,8 @@
 #include <vector>
 
 #include "CryptoTypes.h"
-
+#include "CryptoNote.h"
+#include "BlockchainExplorerData.h"
 #include <boost/variant.hpp>
 
 namespace CryptoNote {
@@ -88,6 +90,37 @@ struct TransactionExtraDetails {
   std::vector<uint8_t> raw;
 };
 
+struct transactionOutputDetails2 {
+  TransactionOutput output;
+  uint64_t globalIndex;
+};
+
+struct BaseInputDetails {
+  BaseInput input;
+  uint64_t amount;
+};
+
+struct KeyInputDetails {
+  KeyInput input;
+  uint64_t mixin;
+  std::vector<TransactionOutputReferenceDetails> outputs;
+};
+
+struct MultisignatureInputDetails {
+  MultisignatureInput input;
+  TransactionOutputReferenceDetails output;
+};
+
+typedef boost::variant<BaseInputDetails, KeyInputDetails, MultisignatureInputDetails> transactionInputDetails2;
+
+struct TransactionExtraDetails2 {
+  std::vector<size_t> padding;
+  Crypto::PublicKey publicKey;
+  BinaryArray nonce;
+  BinaryArray raw;
+  size_t size = 0;
+};
+
 struct TransactionDetails {
   Crypto::Hash hash;
   uint64_t size = 0;
@@ -97,15 +130,16 @@ struct TransactionDetails {
   uint64_t mixin = 0;
   uint64_t unlockTime = 0;
   uint64_t timestamp = 0;
+  uint8_t version = 0;
   Crypto::Hash paymentId;
   bool hasPaymentId = false;
   bool inBlockchain = false;
   Crypto::Hash blockHash;
   uint32_t blockHeight = 0;
-  TransactionExtraDetails extra;
+  TransactionExtraDetails2 extra;
   std::vector<std::vector<Crypto::Signature>> signatures;
-  std::vector<TransactionInputDetails> inputs;
-  std::vector<TransactionOutputDetails> outputs;
+  std::vector<transactionInputDetails2> inputs;
+  std::vector<transactionOutputDetails2> outputs;
 };
 
 struct BlockDetails {
@@ -113,11 +147,14 @@ struct BlockDetails {
   uint8_t minorVersion = 0;
   uint64_t timestamp = 0;
   Crypto::Hash prevBlockHash;
+  Crypto::Hash proofOfWork;
   uint32_t nonce = 0;
   bool isOrphaned = false;
   uint32_t height = 0;
+  uint32_t depth = 0;
   Crypto::Hash hash;
   uint64_t difficulty = 0;
+  uint64_t cumulativeDifficulty = 0;
   uint64_t reward = 0;
   uint64_t baseReward = 0;
   uint64_t blockSize = 0;
@@ -125,6 +162,7 @@ struct BlockDetails {
   uint64_t alreadyGeneratedCoins = 0;
   uint64_t alreadyGeneratedTransactions = 0;
   uint64_t sizeMedian = 0;
+  uint64_t effectiveSizeMedian = 0;
   double penalty = 0.0;
   uint64_t totalFeeAmount = 0;
   std::vector<TransactionDetails> transactions;

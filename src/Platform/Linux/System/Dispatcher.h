@@ -18,6 +18,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <queue>
 #include <stack>
@@ -31,10 +32,10 @@ struct NativeContextGroup;
 
 struct NativeContext {
   void* ucontext;
-  void* stackPtr;
+  void* stackPtr{nullptr};
   bool interrupted;
   bool inExecutionQueue;
-  NativeContext* next;
+  NativeContext* next{nullptr};
   NativeContextGroup* group;
   NativeContext* groupPrev;
   NativeContext* groupNext;
@@ -89,6 +90,8 @@ public:
 # else
   static const int SIZEOF_PTHREAD_MUTEX_T = 32;
 # endif
+#elif defined(__aarch64__)
+  static const int SIZEOF_PTHREAD_MUTEX_T = 48;
 #else
   static const int SIZEOF_PTHREAD_MUTEX_T = 24;
 #endif

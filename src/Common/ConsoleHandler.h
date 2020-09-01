@@ -30,6 +30,7 @@
 #ifndef _WIN32
 #include <sys/select.h>
 #endif 
+
 namespace Common {
 
 class AsyncConsoleReader {
@@ -45,6 +46,7 @@ public:
   bool stopped() const;
   void pause();
   void unpause();
+  
 private:
 
   void consoleThread();

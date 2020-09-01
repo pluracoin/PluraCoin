@@ -105,10 +105,12 @@ namespace CryptoNote
   /************************************************************************/
   struct NOTIFY_NEW_TRANSACTIONS_request
   {
+    bool stem = false;
     std::vector<std::string> txs;
 
     void serialize(ISerializer& s) {
-      KV_MEMBER(txs);
+      KV_MEMBER(stem)
+      KV_MEMBER(txs)
     }
 
   };
@@ -208,5 +210,42 @@ namespace CryptoNote
   struct NOTIFY_REQUEST_TX_POOL {
     const static int ID = BC_COMMANDS_POOL_BASE + 8;
     typedef NOTIFY_REQUEST_TX_POOL_request request;
+  };
+
+  /************************************************************************/
+  /*                                                                      */
+  /************************************************************************/
+  struct NOTIFY_NEW_LITE_BLOCK_request {
+    std::string block;
+    uint32_t current_blockchain_height;
+    uint32_t hop;
+
+    void serialize(ISerializer& s) {
+      KV_MEMBER(block)
+      KV_MEMBER(current_blockchain_height)
+      KV_MEMBER(hop)
+    }
+  };
+
+  struct NOTIFY_NEW_LITE_BLOCK {
+    const static int ID = BC_COMMANDS_POOL_BASE + 9;
+    typedef NOTIFY_NEW_LITE_BLOCK_request request;
+  };
+
+  struct NOTIFY_MISSING_TXS_request {
+    Crypto::Hash blockHash;
+    uint32_t current_blockchain_height;
+    std::vector<Crypto::Hash> missing_txs;
+
+    void serialize(ISerializer& s) {
+      KV_MEMBER(blockHash)
+      KV_MEMBER(current_blockchain_height)
+      serializeAsBinary(missing_txs, "missing_txs", s);
+    }
+  };
+
+  struct NOTIFY_MISSING_TXS {
+    const static int ID = BC_COMMANDS_POOL_BASE + 10;
+    typedef NOTIFY_MISSING_TXS_request request;
   };
 }
