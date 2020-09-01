@@ -1348,13 +1348,11 @@ bool Blockchain::handle_alternative_block(const Block& b, const Crypto::Hash& id
     }
 
     // Disable merged mining
-    if (bei.bl.majorVersion >= CryptoNote::BLOCK_MAJOR_VERSION_5) {
-      TransactionExtraMergeMiningTag mmTag;
-      if (getMergeMiningTagFromExtra(bei.bl.baseTransaction.extra, mmTag)) {
-        logger(ERROR, BRIGHT_RED) << "Merge mining tag was found in extra of miner transaction";
+    TransactionExtraMergeMiningTag mmTag;
+    if (getMergeMiningTagFromExtra(bei.bl.baseTransaction.extra, mmTag) && bei.height > CryptoNote::parameters::DROP_MM_HEIGHT) {
+        logger(ERROR, BRIGHT_RED) << "handle_alternative_block failed - Merge mining tag was found in extra of miner transaction";
         return false;
-      }
-    }
+        }
 
     // Check the block's hash against the difficulty target for its alt chain
     difficulty_type current_diff = get_next_difficulty_for_alternative_chain(alt_chain, bei);
@@ -2142,14 +2140,12 @@ bool Blockchain::pushBlock(const Block& blockData, const std::vector<Transaction
   //  return false;
   //}
 
-  // Disable merged mining
-  if (blockData.majorVersion >= CryptoNote::BLOCK_MAJOR_VERSION_5) {
-    TransactionExtraMergeMiningTag mmTag;
-    if (getMergeMiningTagFromExtra(blockData.baseTransaction.extra, mmTag)) {
-      logger(ERROR, BRIGHT_RED) << "Merge mining tag was found in extra of miner transaction";
+  // Disable merged mining  
+  TransactionExtraMergeMiningTag mmTag;
+  if (getMergeMiningTagFromExtra(blockData.baseTransaction.extra, mmTag) && getCurrentBlockchainHeight() > CryptoNote::parameters::DROP_MM_HEIGHT) {
+      logger(ERROR, BRIGHT_RED) << "Merge mining tag was found in extra of miner transaction" << getMergeMiningTagFromExtra(blockData.baseTransaction.extra, mmTag);
       return false;
-    }
-  }
+    }  
 
   if (blockData.previousBlockHash != getTailId()) {
     logger(INFO, BRIGHT_WHITE) <<
@@ -2268,8 +2264,11 @@ bool Blockchain::pushBlock(const Block& blockData, const std::vector<Transaction
 
   auto block_processing_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - blockProcessingStart).count();
 
-  logger(DEBUGGING) <<
-    "+++++ BLOCK SUCCESSFULLY ADDED" << ENDL << "id:\t" << blockHash
+  logger(INFO)
+    <<
+    "+++++ BLOCK at height " << block.height << " (v." << block.bl.majorVersion << ") SUCCESSFULLY ADDED" << ENDL;
+  logger(DEBUGGING)
+    << "id:\t" << blockHash
     << ENDL << "PoW:\t" << proof_of_work
     << ENDL << "HEIGHT " << block.height << ", difficulty:\t" << currentDifficulty
     << ENDL << "block reward: " << m_currency.formatAmount(reward) << ", fee = " << m_currency.formatAmount(fee_summary)

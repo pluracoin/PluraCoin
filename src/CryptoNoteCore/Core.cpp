@@ -287,6 +287,12 @@ bool Core::check_tx_mixin(const Transaction& tx, const Crypto::Hash& txHash, uin
         logger(ERROR) << "Transaction " << Common::podToHex(txHash) << " has too large mixin count, rejected";
         return false;
       }
+//todo      
+/*if (getCurrentBlockMajorVersion() >= BLOCK_MAJOR_VERSION_4 && txMixin < m_currency.minMixin() && txMixin != 1) {
+        logger(ERROR) << "Transaction " << Common::podToHex(txHash) << " has mixIn count below the required minimum, rejected";
+        return false;
+      }
+      ++inputIndex;*/
     }
   }
   return true;

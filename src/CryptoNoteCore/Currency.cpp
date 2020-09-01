@@ -691,33 +691,33 @@ namespace CryptoNote {
 			return 1;
 
 		// To get an average solvetime to within +/- ~0.1%, use an adjustment factor.
-		const double_t adjust = 0.998;
+		const double adjust = 0.998;
 		// The divisor k normalizes LWMA.
-		const double_t k = N * (N + 1) / 2;
+		const double k = N * (N + 1) / 2.0f;
 
-		double_t LWMA(0), sum_inverse_D(0), harmonic_mean_D(0), nextDifficulty(0);
+		double LWMA(0), sum_inverse_D(0), harmonic_mean_D(0), nextDifficulty(0);
 		int64_t solveTime(0);
 		uint64_t difficulty(0), next_difficulty(0);
 
 		// Loop through N most recent blocks.
-		for (int64_t i = 1; i <= N; i++) {
+		for (size_t i = 1; i <= N; i++) {
 			solveTime = static_cast<int64_t>(timestamps[i]) - static_cast<int64_t>(timestamps[i - 1]);
 			solveTime = std::min<int64_t>((T * 7), std::max<int64_t>(solveTime, (-6 * T)));
 			difficulty = cumulativeDifficulties[i] - cumulativeDifficulties[i - 1];
-			LWMA += solveTime * i / k;
-			sum_inverse_D += 1 / static_cast<double_t>(difficulty);
+			LWMA += (int64_t)(solveTime * i) / k;
+			sum_inverse_D += 1 / static_cast<double>(difficulty);
 		}
 
 		// Keep LWMA sane in case something unforeseen occurs.
 		if (static_cast<int64_t>(boost::math::round(LWMA)) < T / 20)
-			LWMA = static_cast<double_t>(T / 20);
+			LWMA = static_cast<double>(T) / 20;
 
 		harmonic_mean_D = N / sum_inverse_D * adjust;
 		nextDifficulty = harmonic_mean_D * T / LWMA;
 		next_difficulty = static_cast<uint64_t>(nextDifficulty);
 		
 		// minimum limit
-		if (next_difficulty < 100000) {
+		if (!isTestnet() && next_difficulty < 100000) {
 			next_difficulty = 100000;
 		}
 
@@ -753,7 +753,7 @@ namespace CryptoNote {
 		
 		for (int64_t i = 1; i <= N; i++) {
 			if (height < lwma3_height) { // LWMA-2								
-				ST = clamp(-6 * T, int64_t(timestamps[i]) - int64_t(timestamps[i - 1]), 6 * T);				
+				ST = clamp(-6 * T, int64_t(timestamps[i]) - int64_t(timestamps[i - 1]), 6 * T);
 			}
 			else { // LWMA-3				
 				if (static_cast<int64_t>(timestamps[i]) > prev_max_TS) {
@@ -774,7 +774,7 @@ namespace CryptoNote {
 		next_D = uint64_t((cumulativeDifficulties[N] - cumulativeDifficulties[0]) * T * (N + 1)) / uint64_t(2 * L);
 		next_D = (next_D * 99ull) / 100ull;
 
-		prev_D = cumulativeDifficulties[N] - cumulativeDifficulties[N - 1];				
+		prev_D = cumulativeDifficulties[N] - cumulativeDifficulties[N - 1];
 		next_D = clamp((uint64_t)(prev_D * 67ull / 100ull), next_D, (uint64_t)(prev_D * 150ull / 100ull));
 		if (sum_3_ST < (8 * T) / 10)
 		{
@@ -782,9 +782,9 @@ namespace CryptoNote {
 		}
 
 		// minimum limit
-		if (next_D < 100000) {
+		if (!isTestnet() && next_D < 100000) {
 			next_D = 100000;
-		}		
+		}
 
 		return next_D;
 	}
