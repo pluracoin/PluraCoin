@@ -278,9 +278,9 @@ bool Core::get_stat_info(core_stat_info& st_inf) {
 }
 
 bool Core::check_tx_mixin(const Transaction& tx, const Crypto::Hash& txHash, uint32_t height) {
-  size_t inputIndex = 0;
+  //size_t inputIndex = 0;
   for (const auto& txin : tx.inputs) {
-    assert(inputIndex < tx.signatures.size());
+    assert(0 < tx.signatures.size());
     if (txin.type() == typeid(KeyInput)) {
       uint64_t txMixin = boost::get<KeyInput>(txin).outputIndexes.size();
       if (txMixin > CryptoNote::parameters::MAX_TX_MIXIN_SIZE && height > CryptoNote::parameters::UPGRADE_HEIGHT_V4) {

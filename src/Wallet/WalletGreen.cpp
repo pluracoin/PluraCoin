@@ -678,7 +678,7 @@ void WalletGreen::copyContainerStorageKeys(ContainerStorage& src, const chacha8_
     dst.flush();
   });
 
-  size_t counter = 0;
+  //size_t counter = 0;
 
   for (auto& encryptedSpendKeys : src) {
     Crypto::PublicKey publicKey;
@@ -810,8 +810,9 @@ void WalletGreen::subscribeWallets() {
       sub.syncStart.timestamp = std::max(static_cast<uint64_t>(wallet.creationTimestamp), ACCOUNT_CREATE_TIME_ACCURACY) - ACCOUNT_CREATE_TIME_ACCURACY;
 
       auto& subscription = m_synchronizer.addSubscription(sub);
-      bool r = index.modify(it, [&subscription](WalletRecord& rec) { rec.container = &subscription.getContainer(); });
-      assert(r);
+      /*bool r = index.modify(it, [&subscription](WalletRecord& rec) { rec.container = &subscription.getContainer(); });
+      assert(r);*/
+      assert(index.modify(it, [&subscription](WalletRecord& rec) { rec.container = &subscription.getContainer(); }));
 
       subscription.addObserver(this);
     }

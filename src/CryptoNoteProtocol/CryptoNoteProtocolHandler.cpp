@@ -187,7 +187,7 @@ bool CryptoNoteProtocolHandler::process_payload_sync_data(const CORE_SYNC_DATA& 
   } else {
     int64_t diff = static_cast<int64_t>(hshd.current_height - 1) - static_cast<int64_t>(get_current_blockchain_height());
 
-    // drop and eventually ban if peer is on fork too deep behind us 
+    // drop and eventually ban if peer is on fork too deep behind us         
     if (diff < 0 && std::abs(diff) > CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW && m_core.isInCheckpointZone(hshd.current_height)) {
       logger(Logging::DEBUGGING) << context << "Sync data returned a new top block candidate: " << get_current_blockchain_height() << " -> " << hshd.current_height - 1
         << ". Your node is " << std::abs(diff) << " blocks (" << std::abs(diff) / (24 * 60 * 60 / m_currency.difficultyTarget()) << " days) "
@@ -886,14 +886,12 @@ bool CryptoNoteProtocolHandler::request_missing_objects(CryptoNoteConnectionCont
 bool CryptoNoteProtocolHandler::on_connection_synchronized() {
   bool val_expected = false;
   if (m_synchronized.compare_exchange_strong(val_expected, true)) {
-    std::cout << ENDL << "**********************************************************************" << ENDL
+    std::cout << ENDL << ENDL << "**********************************************************************" << ENDL
       << "You are now synchronized with the network. You may now start simplewallet." << ENDL
-      << ENDL
       << "Please note, that the blockchain will be saved only after you quit the daemon with \"exit\" command or if you use \"save\" command." << ENDL
       << "Otherwise, you will possibly need to synchronize the blockchain again." << ENDL
-      << ENDL
       << "Use \"help\" command to see the list of available commands." << ENDL
-      << "**********************************************************************" << ENDL;
+      << "**********************************************************************" << ENDL << ENDL;
     m_core.on_synchronized();
 
     uint32_t height;
