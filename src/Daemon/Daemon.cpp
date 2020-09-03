@@ -227,12 +227,12 @@ int main(int argc, char* argv[])
       return 0;
     }
 
+    logger(INFO) << "Module folder: " << argv[0];
 
     //check for latest version
     std::string domain(VERSIOND_HOST);
     std::vector<std::string>records;
 
-    logger(INFO) << "Module folder: " << argv[0];
     logger(Logging::INFO) << "Getting latest version info ...";
 
     if (!Common::fetch_dns_txt(domain, records)) {
@@ -252,7 +252,7 @@ int main(int argc, char* argv[])
           int local_version_int = std::stoi(local_version);
           int latest_version_int = std::stoi(latest_version);   
           
-          if(local_version_int == latest_version_int) {
+          if(local_version_int >= latest_version_int) {
             logger(INFO, GREEN) << "Great! You are using latest version " << record;
             }
           else {
