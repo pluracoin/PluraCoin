@@ -136,6 +136,9 @@ void Core::getTransactions(const std::vector<Crypto::Hash>& txs_ids, std::list<T
   m_blockchain.getTransactions(txs_ids, txs, missed_txs, checkTxPool);
 }
 
+bool Core::getTransactionsWithOutputGlobalIndexes(const std::vector<Crypto::Hash>& txs_ids, std::list<Crypto::Hash>& missed_txs, std::vector<std::pair<Transaction, std::vector<uint32_t>>>& txs) {
+  return m_blockchain.getTransactionsWithOutputGlobalIndexes(txs_ids, missed_txs, txs);
+}
 bool Core::getTransaction(const Crypto::Hash& id, Transaction& tx, bool checkTxPool) {
   std::vector<Crypto::Hash> txs_ids;
   std::list<Transaction> txs;
@@ -150,6 +153,10 @@ bool Core::getTransaction(const Crypto::Hash& id, Transaction& tx, bool checkTxP
   }
 
   return false;
+}
+
+bool Core::getTransactionHeight(const Crypto::Hash &txId, uint32_t& blockHeight) {
+  return m_blockchain.getTransactionHeight(txId, blockHeight);
 }
 
 bool Core::get_alternative_blocks(std::list<Block>& blocks) {
@@ -278,9 +285,9 @@ bool Core::get_stat_info(core_stat_info& st_inf) {
 }
 
 bool Core::check_tx_mixin(const Transaction& tx, const Crypto::Hash& txHash, uint32_t height) {
-  //size_t inputIndex = 0;
+  size_t inputIndex = 0;
   for (const auto& txin : tx.inputs) {
-    assert(0 < tx.signatures.size());
+    assert(inputIndex < tx.signatures.size());
     if (txin.type() == typeid(KeyInput)) {
       uint64_t txMixin = boost::get<KeyInput>(txin).outputIndexes.size();
       if (txMixin > CryptoNote::parameters::MAX_TX_MIXIN_SIZE && height > CryptoNote::parameters::UPGRADE_HEIGHT_V4) {
