@@ -17,9 +17,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <iostream>
-#include <iomanip>
-
 #include "CryptoNoteProtocolHandler.h"
 
 #include <future>
@@ -453,6 +450,12 @@ int CryptoNoteProtocolHandler::handle_request_get_objects(int command, NOTIFY_RE
 int CryptoNoteProtocolHandler::handle_response_get_objects(int command, NOTIFY_RESPONSE_GET_OBJECTS::request& arg, CryptoNoteConnectionContext& context) {
   logger(Logging::TRACE) << context << "NOTIFY_RESPONSE_GET_OBJECTS";
 
+  if (arg.blocks.empty())
+  {
+    logger(Logging::ERROR) << context << "sent wrong NOTIFY_HAVE_OBJECTS: no blocks, dropping connection";
+    m_p2p->drop_connection(context, true);
+    return 1;
+  }
   if (context.m_last_response_height > arg.current_blockchain_height) {
     logger(Logging::ERROR) << context << "sent wrong NOTIFY_HAVE_OBJECTS: arg.m_current_blockchain_height=" << arg.current_blockchain_height
       << " < m_last_response_height=" << context.m_last_response_height << ", dropping connection";
@@ -938,7 +941,10 @@ int CryptoNoteProtocolHandler::handle_response_chain_entry(int command, NOTIFY_R
       context.m_needed_objects.push_back(bl_id);
   }
 
-  request_missing_objects(context, false);
+  if (!request_missing_objects(context, false)) {
+    logger(Logging::DEBUGGING) << context << "Failed to request missing objects, dropping connection";
+    m_p2p->drop_connection(context, true);
+  }
   return 1;
 }
 
