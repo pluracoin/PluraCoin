@@ -14,7 +14,7 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Karbo.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -59,7 +59,16 @@ const std::initializer_list<CheckpointData> CHECKPOINTS = {
     {300000, "8a0fabd20ab7e4c3612a2c7b45637488345226b8e42b9406e006c4384e753326"},
     {325000, "e1fccd7ee89374ade6650d7e1a01710abd471f73bf627b772851dbd9c34cc53a"},
     {350000, "bc1a62a7b5bd73a96e375c6ae88217611786251b9acab245218f6465d0585a70"},
-    {360500, "0c4023df7712c6457d90e7d50b7528d4ffb6d4ca390dee3dae8afece087bfc5c"}
+    {360500, "0c4023df7712c6457d90e7d50b7528d4ffb6d4ca390dee3dae8afece087bfc5c"},
+    {400000, "8995f9ee56d3feb95acea3dcdbb84fc03c4e943460df8623ccb7cb6ce68b7efa"},
+    {411000, "eb41978ef9d673981b9a4f59e99a1f2d71531bf4905aec247d1bbe1530c44f44"},
+    {430000, "04462d99973b3b3add0df6bcb76893ff4dcae9d1d2cb5533bce418f1bfe56b1b"},
+    {447000, "4660ad0267acfebcf01f23ce376e0db296d75235815b09fe3240a3a9ce1570e6"},
+    {500000, "55157067f77d1a61bf306e531c60c94e7e0cd8ca41ad785042575245f5bfdebd"},
+    {599999, "78a59b5bb21f857945a495951fea9970324a657b9a775f121deeb840d58aae35"},
+    {699998, "7883c87effde6defe7b90864fbd76fad5ea91189ebd46fe91d522ce19dc55af5"},
+    {800000, "bdaa0b0da0015de10adb259c356a1d4e064e5324443d2d3db7a83c026d561a4c"}
+
 };
   
 }
