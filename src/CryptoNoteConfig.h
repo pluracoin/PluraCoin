@@ -1,5 +1,5 @@
 // Copyright (c) 2012-2018, The CryptoNote developers, The Bytecoin developers, The Monero project, The Forknote developers, The Karbowanec developers
-// Copyright (c) 2018 The Pluracoin developers
+// Copyright (c) 2018-2021, The Pluracoin developers
 //
 // This file is part of Bytecoin.
 //

@@ -151,10 +151,10 @@ bool processServerAliasResponse(const std::string& s, std::string& address) {
     auto pos2 = s.find(";", pos);
     if (pos2 != std::string::npos)
     {
-      // length of address == 95, we can at least validate that much here
-      if (pos2 - pos == 95)
+      // length of address == 97, we can at least validate that much here
+      if (pos2 - pos == 97)
       {
-        address = s.substr(pos, 95);
+        address = s.substr(pos, 97);
       }
       else {
         return false;

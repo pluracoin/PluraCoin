@@ -24,7 +24,7 @@ namespace WalletConfig
     const std::string addressBookFilename = ".addressBook.json";
 
     /* The name of your deamon */
-    const std::string daemonName = "pluracoindd";
+    const std::string daemonName = "pluracoind";
 
     /* The name to call this wallet */
     const std::string walletName = "GreenWallet";
@@ -44,7 +44,7 @@ namespace WalletConfig
 
 
     /* The length of a standard address for your coin */
-    const long unsigned int addressLength = 95;
+    const long unsigned int addressLength = 97;
 
 
     /* The mixin value to use with transactions */
