@@ -63,8 +63,7 @@ namespace CryptoNote
 
     bool addTransaction(const Crypto::Hash& txid, std::string tx_blob) {
       std::lock_guard<std::recursive_mutex> lk(m_stempool_mutex);
-      //auto r = m_stempool.insert(tx_blob_by_hash::value_type(txid, tx_blob));
-      m_stempool.insert(tx_blob_by_hash::value_type(txid, tx_blob));
+      auto r = m_stempool.insert(tx_blob_by_hash::value_type(txid, tx_blob));
 
       return true;
     }

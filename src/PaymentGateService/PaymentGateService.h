@@ -47,6 +47,7 @@ private:
   void runInProcess(Logging::LoggerRef& log);
   void runRpcProxy(Logging::LoggerRef& log);
 
+  
   void runWalletService(const CryptoNote::Currency& currency, CryptoNote::INode& node);
 
   System::Dispatcher* dispatcher;

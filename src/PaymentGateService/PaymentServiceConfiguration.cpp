@@ -37,6 +37,9 @@ Configuration::Configuration() {
   daemonize = false;
   registerService = false;
   unregisterService = false;
+  containerPassword = "";
+  newContainerPassword = "";
+  changePassword = false;
   logFile = "walletd.log";
   testnet = false;
   printAddresses = false;
@@ -53,6 +56,7 @@ Configuration::Configuration() {
   m_chain_file = "";
   m_key_file = "";
   m_dh_file = "";
+  scanHeight = 0;
 }
 
 void Configuration::initOptions(po::options_description& desc) {
@@ -68,6 +72,7 @@ void Configuration::initOptions(po::options_description& desc) {
       ("rpc-dh-file", po::value<std::string>()->default_value(std::string(CryptoNote::RPC_DEFAULT_DH_FILE)), "SSL DH file")
       ("container-file,w", po::value<std::string>(), "container file")
       ("container-password,p", po::value<std::string>(), "container password")
+      ("change-password", po::value<std::string>(), "change container password and exit")
       ("generate-container,g", "generate new container file with one wallet and exit")
       ("view-key", po::value<std::string>(), "generate a container with this secret key view")
       ("spend-key", po::value<std::string>(), "generate a container with this secret spend key")
@@ -81,6 +86,7 @@ void Configuration::initOptions(po::options_description& desc) {
       ("log-file,l", po::value<std::string>(), "log file")
       ("server-root", po::value<std::string>(), "server root. The service will use it as working directory. Don't set it if don't want to change it")
       ("log-level", po::value<size_t>(), "log level")
+      ("scan-height", po::value<uint32_t>(), "The height to begin scanning a wallet from");
       ("address", "print wallet addresses and exit");
 }
 
@@ -117,6 +123,9 @@ void Configuration::init(const po::variables_map& options) {
     }
   }
 
+  if (options.count("scan-height") != 0) {
+    scanHeight = options["scan-height"].as<uint32_t>();
+  }
   if (options.count("server-root") != 0) {
     serverRoot = options["server-root"].as<std::string>();
   }
@@ -163,6 +172,11 @@ void Configuration::init(const po::variables_map& options) {
 
   if (options.count("container-password") != 0) {
     containerPassword = options["container-password"].as<std::string>();
+  }
+
+  if (options.count("change-password") != 0) {
+    changePassword = true;
+    newContainerPassword = options["change-password"].as<std::string>();
   }
 
   if (options.count("generate-container") != 0) {

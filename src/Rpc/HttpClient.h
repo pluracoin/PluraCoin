@@ -19,7 +19,8 @@
 
 #include <memory>
 
-#include <Common/Base64.h>
+#include <Common/base64.hpp>
+#include <Common/StringTools.h>
 #include <HTTP/HttpRequest.h>
 #include <HTTP/HttpResponse.h>
 #include <System/TcpConnection.h>
@@ -77,9 +78,10 @@ void invokeJsonCommand(HttpClient& client, const std::string& url, const Request
   HttpRequest hreq;
   HttpResponse hres;
 
+  hreq.addHeader("Connection", "keep-alive");
   hreq.addHeader("Content-Type", "application/json");
   if (!user.empty() || !password.empty()) {
-    hreq.addHeader("Authorization", "Basic " + Tools::Base64::encode(user + ":" + password));
+    hreq.addHeader("Authorization", "Basic " + base64::encode(Common::asBinaryArray(user + ":" + password)));
   }
   hreq.setUrl(url);
   hreq.setBody(storeToJson(req));
@@ -106,9 +108,10 @@ void invokeJsonRpcCommand(HttpClient& client, const std::string& method, const R
     HttpRequest httpReq;
     HttpResponse httpRes;
 
+    httpReq.addHeader("Connection", "keep-alive");
     httpReq.addHeader("Content-Type", "application/json");
     if (!user.empty() || !password.empty()) {
-      httpReq.addHeader("Authorization", "Basic " + Tools::Base64::encode(user + ":" + password));
+      httpReq.addHeader("Authorization", "Basic " + base64::encode(Common::asBinaryArray(user + ":" + password)));
     }
     httpReq.setUrl("/json_rpc");
     httpReq.setBody(jsReq.getBody());
@@ -135,9 +138,10 @@ template <typename Request, typename Response>
 void invokeBinaryCommand(HttpClient& client, const std::string& url, const Request& req, Response& res, const std::string& user = "", const std::string& password = "") {
   HttpRequest hreq;
   HttpResponse hres;
+  hreq.addHeader("Connection", "keep-alive");
 
   if (!user.empty() || !password.empty()) {
-    hreq.addHeader("Authorization", "Basic " + Tools::Base64::encode(user + ":" + password));
+    hreq.addHeader("Authorization", "Basic " + base64::encode(Common::asBinaryArray(user + ":" + password)));
   }
   hreq.setUrl(url);
   hreq.setBody(storeToBinaryKeyValue(req));

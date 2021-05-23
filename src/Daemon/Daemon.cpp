@@ -253,7 +253,7 @@ int main(int argc, char* argv[])
           int latest_version_int = std::stoi(latest_version);   
           
           if(local_version_int >= latest_version_int) {
-            logger(INFO, GREEN) << "Great! You are using latest version " << record;
+            logger(INFO, GREEN) << "Great! You are using latest version " << lvs;
             }
           else {
             std::cout << "\n";
@@ -325,9 +325,9 @@ int main(int argc, char* argv[])
         checkpoints.add_checkpoint(cp.height, cp.blockId);
       }
 
-#ifndef __ANDROID__
+//#ifndef __ANDROID__
       checkpoints.load_checkpoints_from_dns();
-#endif
+//#endif
 
       bool manual_checkpoints = !command_line::get_arg(vm, arg_load_checkpoints).empty();
 
@@ -388,38 +388,7 @@ int main(int argc, char* argv[])
 
     //load IP ban list
     p2psrv.load_banlist_from_dns();
-
-    //blockchain validators
-    /*bool validators_enabled = false;
-
-    if(p2psrv.validators_enabled()) {
-        validators_enabled = true;
-    }
-
-    if(validators_enabled) {
-        logger(INFO) << "Trusted Blockchain Validators enabled";
-        p2psrv.load_validators_from_dns();
-        if(BlockchainValidators.size() == 0) {
-            logger(ERROR, BRIGHT_RED) << "Failed to get the list of Trusted Blockchain Validators from DNS.";
-            return 0;
-        }
-        else {
-            //TODO - remove TBV items that are not in DNS and add the new TBV entries
-            //to prevent empty BlockchainValidators variable while the new block is incoming
-        }
-    }
-    else {
-        logger(INFO) << "Trusted Blockchain Validators disabled";
-    }*/
-
-    //logger(INFO) << "Initializing core rpc server...";
-    //if (!rpc_server.init(vm)) {
-    //  logger(ERROR, BRIGHT_RED) << "Failed to initialize core rpc server.";
-    //  return 1;
-    //}
-    // logger(INFO, BRIGHT_GREEN) << "Core rpc server initialized OK on port: " << rpc_server.get_binded_port();
-
-    // initialize core here
+    
     logger(INFO) << "Initializing core...";
     if (!m_core.init(coreConfig, minerConfig, true)) {
       logger(ERROR, BRIGHT_RED) << "Failed to initialize core";

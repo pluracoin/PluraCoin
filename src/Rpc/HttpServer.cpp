@@ -27,7 +27,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl/stream.hpp>
 
-#include <Common/Base64.h>
+#include <Common/base64.hpp>
+#include <Common/StringTools.h>
 #include <HTTP/HttpParser.h>
 #include <System/InterruptedException.h>
 #include <System/TcpStream.h>
@@ -77,7 +78,7 @@ void HttpServer::start(const std::string& address, uint16_t port, uint16_t port_
   this->m_address = address;
 
   if (!user.empty() || !password.empty()) {
-    m_credentials = Tools::Base64::encode(user + ":" + password);
+    m_credentials = base64::encode(Common::asBinaryArray(user + ":" + password));
   }
 
   if (!this->m_chain_file.empty() && !this->m_key_file.empty() && !this->m_dh_file.empty() &&
@@ -194,7 +195,6 @@ void HttpServer::sslServerUnit(boost::asio::ip::tcp::socket &socket, boost::asio
           HttpRequest req;
           HttpResponse resp;
           resp.addHeader("Access-Control-Allow-Origin", "*");
-          resp.addHeader("content-type", "application/json");
 
           std::iostream io_stream(&streambuf);
           parser.receiveRequest(io_stream, req);
@@ -290,33 +290,37 @@ void HttpServer::sslServer() {
 
 void HttpServer::acceptLoop() {
   try {
-    System::TcpConnection connection; 
+    System::TcpConnection connection;
     bool accepted = false;
 
     while (!accepted) {
       try {
         connection = m_listener.accept();
         accepted = true;
-      } catch (System::InterruptedException&) {
+      }
+      catch (System::InterruptedException&) {
         throw;
-      } catch (std::exception&) {
+      }
+      catch (std::exception&) {
         // try again
       }
     }
 
     m_connections.insert(&connection);
-    BOOST_SCOPE_EXIT_ALL(this, &connection) { 
-      m_connections.erase(&connection); };
+    BOOST_SCOPE_EXIT_ALL(this, &connection) {
+      m_connections.erase(&connection);
+    };
 
-	workingContextGroup.spawn(std::bind(&HttpServer::acceptLoop, this));
+    workingContextGroup.spawn(std::bind(&HttpServer::acceptLoop, this));
 
-	//auto addr = connection.getPeerAddressAndPort();
-	auto addr = std::pair<System::Ipv4Address, uint16_t>(static_cast<System::Ipv4Address>(0), 0);
-	try {
-		addr = connection.getPeerAddressAndPort();
-	} catch (std::runtime_error&) {
-		logger(WARNING) << "Could not get IP of connection";
-	}
+    //auto addr = connection.getPeerAddressAndPort();
+    auto addr = std::pair<System::Ipv4Address, uint16_t>(static_cast<System::Ipv4Address>(0), 0);
+    try {
+      addr = connection.getPeerAddressAndPort();
+    }
+    catch (std::runtime_error&) {
+      logger(WARNING) << "Could not get IP of connection";
+    }
 
     logger(DEBUGGING) << "Incoming connection from " << addr.first.toDottedDecimal() << ":" << addr.second;
 
@@ -348,8 +352,10 @@ void HttpServer::acceptLoop() {
 
     logger(DEBUGGING) << "Closing connection from " << addr.first.toDottedDecimal() << ":" << addr.second << " total=" << m_connections.size();
 
-  } catch (System::InterruptedException&) {
-  } catch (std::exception& e) {
+  }
+  catch (System::InterruptedException&) {
+  }
+  catch (std::exception& e) {
     logger(DEBUGGING) << "Connection error: " << e.what();
   }
 }

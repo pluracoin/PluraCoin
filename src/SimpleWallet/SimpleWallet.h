@@ -110,8 +110,9 @@ namespace CryptoNote
     bool show_payments(const std::vector<std::string> &args);
     bool show_blockchain_height(const std::vector<std::string> &args);
     bool show_unlocked_outputs_count(const std::vector<std::string> &args);
-    bool listTransfers(const std::vector<std::string> &args);
+    bool list_transfers(const std::vector<std::string> &args);
     bool transfer(const std::vector<std::string> &args);
+    bool prepare_tx(const std::vector<std::string>& args);
     bool print_address(const std::vector<std::string> &args = std::vector<std::string>());
     bool save(const std::vector<std::string> &args);
     bool reset(const std::vector<std::string> &args);
@@ -199,13 +200,12 @@ namespace CryptoNote
     std::string m_spend_key;
     std::string m_wallet_file;
     uint16_t m_daemon_port;
-    Crypto::SecretKey m_recovery_key;  // recovery key (used as random for wallet gen)
-    bool m_restore_deterministic_wallet;  // recover flag
-    bool m_non_deterministic;  // old 2-random generation
     uint32_t m_scan_height;
     bool m_daemon_ssl;
     bool m_daemon_no_verify;
 
+    bool m_do_not_relay_tx;
+    
     std::unique_ptr<std::promise<std::error_code>> m_initResultPromise;
 
     Common::ConsoleHandler m_consoleHandler;

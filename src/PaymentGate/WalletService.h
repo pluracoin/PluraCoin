@@ -48,9 +48,11 @@ struct WalletConfiguration {
   std::string secretSpendKey;
   std::string mnemonicSeed;
   bool generateDeterministic;
+  uint32_t scanHeight;
 };
 
-void generateNewWallet(const CryptoNote::Currency& currency, const WalletConfiguration& conf, Logging::ILogger& logger, System::Dispatcher& dispatcher);
+void generateNewWallet(const CryptoNote::Currency& currency, const WalletConfiguration& conf, Logging::ILogger& logger, System::Dispatcher& dispatcher, CryptoNote::INode& node);
+void changePassword(const CryptoNote::Currency& currency, const WalletConfiguration& conf, Logging::ILogger& logger, System::Dispatcher& dispatcher, CryptoNote::INode& node, const std::string newPassword);
 
 struct TransactionsInBlockInfoFilter;
 

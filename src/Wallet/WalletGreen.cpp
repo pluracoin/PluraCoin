@@ -21,6 +21,7 @@
 #include <ctime>
 #include <cassert>
 #include <fstream>
+#include <future>
 #include <numeric>
 #include <set>
 #include <tuple>
@@ -678,7 +679,7 @@ void WalletGreen::copyContainerStorageKeys(ContainerStorage& src, const chacha8_
     dst.flush();
   });
 
-  //size_t counter = 0;
+  size_t counter = 0;
 
   for (auto& encryptedSpendKeys : src) {
     Crypto::PublicKey publicKey;
@@ -810,9 +811,8 @@ void WalletGreen::subscribeWallets() {
       sub.syncStart.timestamp = std::max(static_cast<uint64_t>(wallet.creationTimestamp), ACCOUNT_CREATE_TIME_ACCURACY) - ACCOUNT_CREATE_TIME_ACCURACY;
 
       auto& subscription = m_synchronizer.addSubscription(sub);
-      /*bool r = index.modify(it, [&subscription](WalletRecord& rec) { rec.container = &subscription.getContainer(); });
-      assert(r);*/
-      assert(index.modify(it, [&subscription](WalletRecord& rec) { rec.container = &subscription.getContainer(); }));
+      bool r = index.modify(it, [&subscription](WalletRecord& rec) { rec.container = &subscription.getContainer(); });
+      assert(r);
 
       subscription.addObserver(this);
     }
@@ -1253,26 +1253,21 @@ std::string WalletGreen::addWallet(const Crypto::PublicKey& spendPublicKey, cons
   }
 }
 
-CryptoNote::BlockDetails WalletGreen::getBlock(const uint32_t blockHeight) {
-	CryptoNote::BlockDetails block;
+uint64_t WalletGreen::getBlockTimestamp(const uint32_t blockHeight) {
+  uint64_t timestamp = 0;
 
-	if (m_node.getLastKnownBlockHeight() == 0) {
-		return block;
-	}
+  auto getBlockTimestampCompleted = std::promise<std::error_code>();
+  auto getBlockTimestampWaitFuture = getBlockTimestampCompleted.get_future();
 
-	std::promise<std::error_code> errorPromise;
+  m_node.getBlockTimestamp(std::move(blockHeight), std::ref(timestamp),
+    [&getBlockTimestampCompleted](std::error_code ec) {
+    auto detachedPromise = std::move(getBlockTimestampCompleted);
+    detachedPromise.set_value(ec);
+  });
 
-	auto e = errorPromise.get_future();
+  std::error_code ec = getBlockTimestampWaitFuture.get();
 
-	auto callback = [&errorPromise](std::error_code e) {
-		errorPromise.set_value(e);
-	};
-
-	m_node.getBlock(blockHeight, block, callback);
-
-	e.get();
-
-	return block;
+  return timestamp;
 }
 
 uint64_t WalletGreen::scanHeightToTimestamp(const uint32_t scanHeight) {
@@ -1281,7 +1276,7 @@ uint64_t WalletGreen::scanHeightToTimestamp(const uint32_t scanHeight) {
 	}
 
 	/* Get the block timestamp from the node if the node has it */
-	uint64_t timestamp = static_cast<uint64_t>(getBlock(scanHeight).timestamp);
+	uint64_t timestamp = getBlockTimestamp(scanHeight);
 
 	if (timestamp != 0) {
 		return timestamp;
@@ -3333,7 +3328,7 @@ CryptoNote::AccountPublicAddress WalletGreen::parseAddress(const std::string& ad
 
 void WalletGreen::throwIfStopped() const {
   if (m_stopped) {
-    m_logger(ERROR, BRIGHT_RED) << "WalletGreen is already stopped";
+    m_logger(DEBUGGING, BRIGHT_RED) << "WalletGreen is already stopped";
     throw std::system_error(make_error_code(error::OPERATION_CANCELLED));
   }
 }

@@ -107,6 +107,7 @@ void CreateAddress::Request::serialize(CryptoNote::ISerializer& serializer) {
      reset = true;
 
   if (hasSecretKey && hasPublicKey) {
+    //TODO: replace it with error codes
     throw RequestSerializationError();
   }
 

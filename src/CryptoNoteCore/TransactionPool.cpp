@@ -407,6 +407,7 @@ namespace CryptoNote {
 
     total_size = 0;
     fee = 0;
+    int counter = 0;
 
     size_t max_total_size = (125 * median_size) / 100;
     max_total_size = std::min(max_total_size, maxCumulativeSize) - m_currency.minerTxBlobReservedSize();
@@ -414,6 +415,8 @@ namespace CryptoNote {
     BlockTemplate blockTemplate;
 
     for (auto i = m_fee_index.begin(); i != m_fee_index.end(); ++i) {
+      if (counter == 127)
+        break;
       const auto& txd = *i;
 
       size_t blockSizeLimit = (txd.fee == 0) ? median_size : max_total_size;
@@ -446,6 +449,7 @@ namespace CryptoNote {
       if (ready && blockTemplate.addTransaction(txd.id, txd.tx)) {
         total_size += txd.blobSize;
         fee += txd.fee;
+        ++counter;
         logger(DEBUGGING) << "Transaction " << txd.id << " included to block template";
       } else {
         logger(DEBUGGING) << "Transaction " << txd.id << " is failed to include to block template";

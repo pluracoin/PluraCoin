@@ -868,7 +868,7 @@ bool Core::on_idle() {
       << "Use \"help\" command to see the list of available commands." << ENDL
       << ENDL
       << "Note: in case you need to interrupt the process, use \"exit\" command. Otherwise, the current progress won't be saved." << ENDL
-      << "**********************************************************************" << ENDL;
+      << "**********************************************************************" << ENDL << ENDL;
     m_starter_message_showed = true;
   }
 
