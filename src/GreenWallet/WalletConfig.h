@@ -11,10 +11,10 @@
 namespace WalletConfig
 {
     /* The prefix your coins address starts with */
-    const std::string addressPrefix = "K";
+    const std::string addressPrefix = "P";
 
     /* Your coins 'Ticker', e.g. Monero = XMR, Bitcoin = BTC */
-    const std::string ticker = "KRB";
+    const std::string ticker = "PLURA";
 
     /* The filename to output the CSV to in save_csv */
     const std::string csvFilename = "transactions.csv";
@@ -24,7 +24,7 @@ namespace WalletConfig
     const std::string addressBookFilename = ".addressBook.json";
 
     /* The name of your deamon */
-    const std::string daemonName = "karbowanecd";
+    const std::string daemonName = "pluracoindd";
 
     /* The name to call this wallet */
     const std::string walletName = "GreenWallet";
@@ -33,10 +33,10 @@ namespace WalletConfig
     const std::string walletdName = "walletd";
 
     /* The full name of your crypto */
-    const std::string coinName = "Karbo";
+    const std::string coinName = "PluraCoin";
 
     /* Where can your users contact you for support? E.g. discord */
-    const std::string contactLink = "https://t.me/karbowanec";
+    const std::string contactLink = "https://t.me/pluracoinofficial";
 
     /* The number of decimals your coin has */
     const int numDecimalPlaces = CryptoNote::parameters
@@ -48,7 +48,7 @@ namespace WalletConfig
 
 
     /* The mixin value to use with transactions */
-    const uint64_t defaultMixin = 5;
+    const uint64_t defaultMixin = 0;
 
     /* The default fee value to use with transactions (in ATOMIC units!) */
     const uint64_t defaultFee = CryptoNote::parameters::MINIMUM_FEE; 

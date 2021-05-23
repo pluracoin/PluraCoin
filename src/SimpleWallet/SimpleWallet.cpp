@@ -832,7 +832,7 @@ bool simple_wallet::get_reserve_proof(const std::vector<std::string> &args)
 		
 		//logger(INFO, BRIGHT_WHITE) << "\n\n" << sig_str << "\n\n" << std::endl;
 
-		const std::string filename = "reserve_proof_" + args[0] + "KRB.txt";
+        const std::string filename = "reserve_proof_" + args[0] + "_PLURA.txt";
 		boost::system::error_code ec;
 		if (boost::filesystem::exists(filename, ec)) {
 			boost::filesystem::remove(filename, ec);
@@ -1018,7 +1018,7 @@ bool simple_wallet::init(const boost::program_options::variables_map& vm)
       << "The node's fee for sending transactions is " <<
       (m_remote_node_fee_amount == 0 ? "0.25% of transaction amount, but no more than " +
         m_currency.formatAmount(CryptoNote::parameters::COIN) : m_currency.formatAmount(m_remote_node_fee_amount)) <<
-      " KRB" <<  std::endl << std::endl <<
+      " PLURA" <<  std::endl << std::endl <<
       "If you don't want to pay the node fee, please run your own node." <<
       std::endl;
 
