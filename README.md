@@ -1,4 +1,4 @@
-The PluraCoin (PLURA) is a anonymous cryptocurrency and privacy centric with opaque and more analysis resistant blockchain.
+PluraCoin (PLURA) - Anonymous cryptocurrency with higher resistance against  blockchain analysis focused on crypto adoption by masses through affordable Crypto e-Commerce Payment Solution (CEPS)
 
 ## Building PluraCoin 
 
