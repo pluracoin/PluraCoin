@@ -12,11 +12,23 @@ jobs:
   build-windows:
     name: Windows
     runs-on: windows-latest
+    env:
+      BOOST_ROOT: C:\thirdparties\boost-1.72.0
     steps:
       - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
 
-      - name: Setup MSBuild.exe
-        uses: warrenbuckley/Setup-MSBuild@v1
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Install Boost
+        shell: powershell
+        run: |
+          $Url = "https://sourceforge.net/projects/boost/files/boost-binaries/1.72.0/boost_1_72_0-msvc-14.2-64.exe"
+          (New-Object System.Net.WebClient).DownloadFile($Url, "$env:TEMP\boost-installer.exe")
+          Start-Process -Wait -FilePath "$env:TEMP\boost-installer.exe" "/SILENT","/SP-","/SUPPRESSMSGBOXES","/DIR=$env:BOOST_ROOT"
 
       - name: Build
         shell: powershell
@@ -25,11 +37,11 @@ jobs:
           $build_folder = "build"
           $sha = "${{ github.sha }}"
           $plura_ver = $sha.SubString(0,7)
-          $release_name = "plura-cli-win64-$plura_ver"
+          $release_name = "pluracoin-cli-win64-$plura_ver"
           mkdir "$build_folder"
           cd "$build_folder"
-          cmake -G "Visual Studio 16 2019" -A x64 -DBOOST_ROOT="$env:BOOST_ROOT_1_69_0" ..
-          msbuild Plura.sln /p:Configuration=Release /m
+          cmake -G "Visual Studio 16 2019" -A x64 -DBOOST_ROOT="$env:BOOST_ROOT" -DBOOST_INCLUDE_DIRS="$env:BOOST_ROOT/include" ..
+          msbuild Pluracoin.sln /p:Configuration=Release /m
           cd src\Release
           Compress-Archive -Path *.exe -DestinationPath "$release_name.zip"
           $sha256 = (Get-FileHash "$release_name.zip").Hash
@@ -55,19 +67,22 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
 
       - name: Build
         id: build
         run: |
           build_folder="build/"
           plura_ver=${GITHUB_SHA::7}
-          release_name="plura-cli-macos-$plura_ver"
+          release_name="pluracoin-cli-macos-$plura_ver"
           brew install --force boost gcc
           brew link boost --force
           mkdir "$build_folder"
           cd "$build_folder"
           cmake -DCMAKE_C_FLAGS="-mmacosx-version-min=10.12" -DCMAKE_CXX_FLAGS="-mmacosx-version-min=10.12" ..
-          make -j2
+          make
           mkdir "$release_name"
           exeFiles=()
           for f in src/*; do [[ -x $f && -f $f ]] && strip "$f" && exeFiles+=( "$f" ); done
@@ -95,6 +110,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
 
       - name: Build
         id: build
@@ -102,11 +120,11 @@ jobs:
           sudo apt install -y libboost-all-dev
           build_folder="build/release"
           plura_ver=${GITHUB_SHA::7}
-          release_name=plura-cli-ubuntu20.04-"$plura_ver"
+          release_name=pluracoin-cli-ubuntu20.04-"$plura_ver"
           mkdir -p "$build_folder"
           cd "$build_folder"
           cmake -D ARCH=default -D CMAKE_BUILD_TYPE=Release -D CMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -D BOOST_IGNORE_SYSTEM_PATHS_DEFAULT=ON -D BOOST_ROOT=/usr ../..
-          make -j2
+          make
           mkdir -p "$release_name"
           exeFiles=()
           for f in src/*; do [[ -x $f && -f $f ]] && exeFiles+=( "$f" ); done
@@ -128,58 +146,22 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@master
-
-      - name: Build
-        id: build
-        run: |
-          sudo apt-get purge '*boost*'
-          sudo apt install -y libboost1.62-all-dev
-          build_folder="build/release"
-          plura_ver=${GITHUB_SHA::7}
-          release_name=plura-cli-ubuntu18.04-"$plura_ver"
-          mkdir -p "$build_folder"
-          cd "$build_folder"
-          cmake -D ARCH=default -D CMAKE_BUILD_TYPE=Release -D CMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -D BOOST_IGNORE_SYSTEM_PATHS_DEFAULT=ON -D BOOST_ROOT=/usr ../..
-          make -j2
-          mkdir -p "$release_name"
-          exeFiles=()
-          for f in src/*; do [[ -x $f && -f $f ]] && exeFiles+=( "$f" ); done
-          strip "${exeFiles[@]}"
-          cp "${exeFiles[@]}" "$release_name/"
-          echo "::set-output name=release_name::${release_name}"
-          echo "::set-output name=artifact_path::$build_folder/$release_name"
-
-      - name: Upload To GH Artifacts
-        uses: actions/upload-artifact@v1.0.0
         with:
-          name: ${{ steps.build.outputs.release_name }}
-          path: ${{ steps.build.outputs.artifact_path }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-ubuntu18-clang:
-    name: Ubuntu 18.04 Clang 6
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@master
+          fetch-depth: 0
+          ref: ${{ github.ref }}
 
       - name: Build
         id: build
-
-        env:
-          CC: clang-6.0
-          CXX: clang++-6.0
-
         run: |
           sudo apt-get purge '*boost*'
           sudo apt install -y libboost1.62-all-dev
           build_folder="build/release"
           plura_ver=${GITHUB_SHA::7}
-          release_name=Plura-cli-ubuntu18.04-clang-6-"$plura_ver"
+          release_name=pluracoin-cli-ubuntu18.04-"$plura_ver"
           mkdir -p "$build_folder"
           cd "$build_folder"
           cmake -D ARCH=default -D CMAKE_BUILD_TYPE=Release -D CMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -D BOOST_IGNORE_SYSTEM_PATHS_DEFAULT=ON -D BOOST_ROOT=/usr ../..
-          make -j2
+          make
           mkdir -p "$release_name"
           exeFiles=()
           for f in src/*; do [[ -x $f && -f $f ]] && exeFiles+=( "$f" ); done
