@@ -1770,22 +1770,22 @@ namespace CryptoNote
 
   std::vector<std::string> NodeServer::load_seeds_from_dns(const bool testnet)
   {
-    /*std::string url = "seed.pluracoin.org";
+    std::string url = "seed.pluracoin.org";
     if(testnet) { url = "seed_testnet.pluracoin.org"; }
     std::string domain(url);
     std::vector<std::string> records;
     std::vector<std::string> seeds;
 
-    logger(Logging::INFO) << "Fetching seed list from " << domain;
+    /*logger(Logging::INFO) << "Fetching seed list from " << domain;
 
     Common::fetch_dns_txt(domain, records);
 
     for (const auto& record : records) {
         logger(Logging::INFO) << "Loading seed: " << record;
         seeds.push_back(record);
-        }
+        }*/
 
-    return seeds;*/
+    return seeds;
 
   }
 
