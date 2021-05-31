@@ -15,7 +15,7 @@ You may download them from:
 * Alternatively, it may be possible to install them using a package manager:
 
 ````
-sudo apt-get install build-essential cmake libboost-all-dev -y
+sudo apt-get install build-essential cmake libboost-all-dev libssl-dev -y
 ````
 
 Ubuntu 20.04 LTS already comes with Git preinstalled. To check if you really have Git installed type:
