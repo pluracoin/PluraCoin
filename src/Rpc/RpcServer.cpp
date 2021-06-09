@@ -164,6 +164,7 @@ std::unordered_map<std::string, RpcServer::RpcHandler<RpcServer::HandlerFunction
   { "/queryblockslite", { jsonMethod<COMMAND_RPC_QUERY_BLOCKS_LITE>(&RpcServer::on_query_blocks_lite), false } },
   { "/get_o_indexes", { jsonMethod<COMMAND_RPC_GET_TX_GLOBAL_OUTPUTS_INDEXES>(&RpcServer::on_get_indexes), false } },
   { "/getrandom_outs", { jsonMethod<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS>(&RpcServer::on_get_random_outs), false } },
+  { "/getrandom_outs2", { jsonMethod<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2>(&RpcServer::on_get_random_outs2), false } },
   { "/get_pool_changes", { jsonMethod<COMMAND_RPC_GET_POOL_CHANGES>(&RpcServer::on_get_pool_changes), true } },
   { "/get_pool_changes_lite", { jsonMethod<COMMAND_RPC_GET_POOL_CHANGES_LITE>(&RpcServer::on_get_pool_changes_lite), true } },
   { "/get_block_details_by_height", { jsonMethod<COMMAND_RPC_GET_BLOCK_DETAILS_BY_HEIGHT>(&RpcServer::on_get_block_details_by_height), true } },
@@ -199,6 +200,8 @@ void RpcServer::processRequest(const HttpRequest& request, HttpResponse& respons
   try {
 
   auto url = request.getUrl();
+
+  logger(Logging::TRACE) << "RPC request: \n" << request << std::endl;
 
   auto it = s_handlers.find(url);
   if (it == s_handlers.end()) {
@@ -633,15 +636,48 @@ bool RpcServer::on_get_random_outs(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOU
 
     std::for_each(ofa.outs.begin(), ofa.outs.end(), [&](out_entry& oe)
     {
-      ss << oe.global_amount_index << " ";
+      ss << oe.global_amount_index << " ";      
     });
     ss << ENDL;
   });
   std::string s = ss.str();
-  //logger(Logging::TRACE) << "COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS: " << ENDL << s;
+  //logger(Logging::INFO) << "COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS: " << ENDL << s;
   res.status = CORE_RPC_STATUS_OK;
   return true;
 }
+
+bool RpcServer::on_get_random_outs2(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::response& res) {
+  res.status = "Failed";
+  if (!m_core.get_random_outs_for_amounts2(req, res)) {
+    return true;
+  }
+
+  res.status = CORE_RPC_STATUS_OK;
+
+  std::vector<uint32_t> out;
+
+  std::stringstream ss;
+  typedef COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::outs_for_amount outs_for_amount;
+  typedef COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::out_entry out_entry;
+
+  std::for_each(res.outs.begin(), res.outs.end(), [&](outs_for_amount& ofa)  {
+    ss << "[" << ofa.amount << "]:";
+
+    assert(ofa.outs.size() && "internal error: ofa.outs.size() is empty");
+
+    std::for_each(ofa.outs.begin(), ofa.outs.end(), [&](out_entry& oe)
+    {
+      ss << oe.global_amount_index << " ";
+    });
+    ss << ENDL;
+  });
+
+  std::string s = ss.str();
+  //logger(Logging::INFO) << "COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2: " << ENDL << s;
+  res.status = CORE_RPC_STATUS_OK;
+  return true;
+}
+
 
 bool RpcServer::on_get_pool_changes(const COMMAND_RPC_GET_POOL_CHANGES::request& req, COMMAND_RPC_GET_POOL_CHANGES::response& rsp) {
   rsp.status = CORE_RPC_STATUS_OK;
@@ -677,7 +713,7 @@ bool RpcServer::on_get_blocks_details_by_heights(const COMMAND_RPC_GET_BLOCKS_DE
     for (const uint32_t& height : req.blockHeights) {
       if (m_core.getCurrentBlockchainHeight() <= height) {
         throw JsonRpc::JsonRpcError{ CORE_RPC_ERROR_CODE_TOO_BIG_HEIGHT,
-          std::string("To big height: ") + std::to_string(height) + ", current blockchain height = " + std::to_string(m_core.getCurrentBlockchainHeight() - 1) };
+          std::string("Too big height: ") + std::to_string(height) + ", current blockchain height = " + std::to_string(m_core.getCurrentBlockchainHeight() - 1) };
       }
       Crypto::Hash block_hash = m_core.getBlockIdByHeight(height);
       Block blk;
@@ -1027,7 +1063,7 @@ bool RpcServer::on_get_transactions_with_output_global_indexes_by_heights(const 
     for (const uint32_t& height : heights) {
       if (m_core.getCurrentBlockchainHeight() <= height) {
         throw JsonRpc::JsonRpcError{ CORE_RPC_ERROR_CODE_TOO_BIG_HEIGHT,
-          std::string("To big height: ") + std::to_string(height) + ", current blockchain height = " + std::to_string(m_core.getCurrentBlockchainHeight() - 1) };
+          std::string("Too big height: ") + std::to_string(height) + ", current blockchain height = " + std::to_string(m_core.getCurrentBlockchainHeight() - 1) };
       }
 
       Crypto::Hash block_hash = m_core.getBlockIdByHeight(height);

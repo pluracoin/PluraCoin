@@ -277,6 +277,56 @@ struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS {
 };
 
 //-----------------------------------------------
+struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_request {
+  std::vector<uint64_t> amounts;
+  uint64_t outs_count;
+
+  void serialize(ISerializer &s) {
+    KV_MEMBER(amounts)
+    KV_MEMBER(outs_count)
+  }
+};
+
+struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_out_entry {
+  uint64_t global_amount_index;
+  std::string out_key;
+
+  void serialize(ISerializer &s) {
+    KV_MEMBER(global_amount_index)
+    KV_MEMBER(out_key);
+  }
+
+};
+
+struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_outs_for_amount {
+  uint64_t amount;
+  std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_out_entry> outs;
+
+  void serialize(ISerializer &s) {
+    KV_MEMBER(amount)
+    KV_MEMBER(outs);
+  }
+};
+
+struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_response {
+  std::vector<COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_outs_for_amount> outs;
+  std::string status;
+
+  void serialize(ISerializer &s) {
+    KV_MEMBER(outs);
+    KV_MEMBER(status)
+  }
+};
+
+struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2 {
+  typedef COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_request request;
+  typedef COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_response response;
+
+  typedef COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_out_entry out_entry;
+  typedef COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_outs_for_amount outs_for_amount;
+};
+
+//-----------------------------------------------
 struct COMMAND_RPC_SEND_RAW_TRANSACTION {
   struct request {
     std::string tx_as_hex;

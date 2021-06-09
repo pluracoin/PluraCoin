@@ -628,6 +628,10 @@ bool Core::get_random_outs_for_amounts(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_
   return m_blockchain.getRandomOutsByAmount(req, res);
 }
 
+bool Core::get_random_outs_for_amounts2(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::response& res) {
+  return m_blockchain.getRandomOutsByAmount2(req, res);
+}
+
 bool Core::get_tx_outputs_gindexs(const Crypto::Hash& tx_id, std::vector<uint32_t>& indexs) {
   return m_blockchain.getTransactionOutputGlobalIndexes(tx_id, indexs);
 }

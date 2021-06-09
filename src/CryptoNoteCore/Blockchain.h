@@ -55,6 +55,10 @@ namespace CryptoNote {
   struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_response;
   struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_outs_for_amount;
 
+  struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_request;
+  struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_response;
+  struct COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_outs_for_amount;
+
   using CryptoNote::BlockInfo;
   class Blockchain : public CryptoNote::ITransactionValidator {
   public:
@@ -114,6 +118,7 @@ namespace CryptoNote {
       uint32_t& totalBlockCount, uint32_t& startBlockIndex);
     bool handleGetObjects(NOTIFY_REQUEST_GET_OBJECTS_request& arg, NOTIFY_RESPONSE_GET_OBJECTS_request& rsp); //Deprecated. Should be removed with CryptoNoteProtocolHandler.
     bool getRandomOutsByAmount(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_response& res);
+    bool getRandomOutsByAmount2(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_response& res);
     bool getBackwardBlocksSize(size_t from_height, std::vector<size_t>& sz, size_t count);
     bool getTransactionOutputGlobalIndexes(const Crypto::Hash& tx_id, std::vector<uint32_t>& indexs);
     bool get_out_by_msig_gindex(uint64_t amount, uint64_t gindex, MultisignatureOutput& out);
@@ -312,6 +317,7 @@ namespace CryptoNote {
     bool rollback_blockchain_switching(std::list<Block>& original_chain, size_t rollback_height);
     bool get_last_n_blocks_sizes(std::vector<size_t>& sz, size_t count);
     bool add_out_to_get_random_outs(std::vector<std::pair<TransactionIndex, uint16_t>>& amount_outs, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_outs_for_amount& result_outs, uint64_t amount, size_t i);
+    bool add_out_to_get_random_outs2(std::vector<std::pair<TransactionIndex, uint16_t>>& amount_outs, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_outs_for_amount& result_outs, uint64_t amount, size_t i);
     size_t find_end_of_allowed_index(const std::vector<std::pair<TransactionIndex, uint16_t>>& amount_outs);
     bool check_block_timestamp_main(const Block& b);
     bool check_block_timestamp(std::vector<uint64_t> timestamps, const Block& b);

@@ -155,6 +155,7 @@ namespace CryptoNote {
      virtual bool get_tx_outputs_gindexs(const Crypto::Hash& tx_id, std::vector<uint32_t>& indexs) override;
      Crypto::Hash get_tail_id();
      virtual bool get_random_outs_for_amounts(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_response& res) override;
+     virtual bool get_random_outs_for_amounts2(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_response& res);
      void pause_mining() override;
      void update_block_template_and_resume_mining() override;
      Blockchain& get_blockchain_storage(){return m_blockchain;}

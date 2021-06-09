@@ -1561,6 +1561,25 @@ bool Blockchain::add_out_to_get_random_outs(std::vector<std::pair<TransactionInd
   return true;
 }
 
+bool Blockchain::add_out_to_get_random_outs2(std::vector<std::pair<TransactionIndex, uint16_t>>& amount_outs, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::outs_for_amount& result_outs, uint64_t amount, size_t i) {
+  std::lock_guard<decltype(m_blockchain_lock)> lk(m_blockchain_lock);
+  const Transaction& tx = transactionByIndex(amount_outs[i].first).tx;
+  if (!(tx.outputs.size() > amount_outs[i].second)) {
+    logger(ERROR, BRIGHT_RED) << "internal error: in global outs index, transaction out index="
+      << amount_outs[i].second << " more than transaction outputs = " << tx.outputs.size() << ", for tx id = " << getObjectHash(tx); return false;
+  }
+  if (!(tx.outputs[amount_outs[i].second].target.type() == typeid(KeyOutput))) { logger(ERROR, BRIGHT_RED) << "unknown tx out type"; return false; }
+
+  //check if transaction is unlocked
+  if (!is_tx_spendtime_unlocked(tx.unlockTime))
+    return false;
+
+  COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::out_entry& oen = *result_outs.outs.insert(result_outs.outs.end(), COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::out_entry());
+  oen.global_amount_index = static_cast<uint32_t>(i);
+  oen.out_key = Common::podToHex(boost::get<KeyOutput>(tx.outputs[amount_outs[i].second].target).key);
+  return true;
+}
+
 size_t Blockchain::find_end_of_allowed_index(const std::vector<std::pair<TransactionIndex, uint16_t>>& amount_outs) {
   std::lock_guard<decltype(m_blockchain_lock)> lk(m_blockchain_lock);
   if (amount_outs.empty()) {
@@ -1619,6 +1638,52 @@ bool Blockchain::getRandomOutsByAmount(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_
     {
       for(size_t i = 0; i != up_index_limit; i++)
         add_out_to_get_random_outs(amount_outs, result_outs, amount, i);
+    }
+  }
+  return true;
+}
+
+bool Blockchain::getRandomOutsByAmount2(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::response& res) {
+  std::lock_guard<decltype(m_blockchain_lock)> lk(m_blockchain_lock);
+
+  for (uint64_t amount : req.amounts) {
+    COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::outs_for_amount& result_outs = *res.outs.insert(res.outs.end(), COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::outs_for_amount());
+    result_outs.amount = amount;
+    auto it = m_outputs.find(amount);
+    if (it == m_outputs.end()) {
+      logger(ERROR, BRIGHT_RED) <<
+        "COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS: not outs for amount " << amount << ", wallet should use some real outs when it lookup for some mix, so, at least one out for this amount should exist";
+      continue;//actually this is strange situation, wallet should use some real outs when it lookup for some mix, so, at least one out for this amount should exist
+    }
+
+    std::vector<std::pair<TransactionIndex, uint16_t>>& amount_outs = it->second;
+    //it is not good idea to use top fresh outs, because it increases possibility of transaction canceling on split
+    //lets find upper bound of not fresh outs
+    size_t up_index_limit = find_end_of_allowed_index(amount_outs);
+    if (!(up_index_limit <= amount_outs.size())) { logger(ERROR, BRIGHT_RED) << "internal error: find_end_of_allowed_index returned wrong index=" << up_index_limit << ", with amount_outs.size = " << amount_outs.size(); return false; }
+
+    if(amount_outs.size() > req.outs_count)
+    {
+      std::set<size_t> used;
+      size_t try_count = 0;
+      for(uint64_t j = 0; j != req.outs_count && try_count < up_index_limit;)
+      {
+        // triangular distribution over [a,b) with a=0, mode c=b=up_index_limit
+        uint64_t r = Random::randomValue<size_t>() % ((uint64_t)1 << 53);
+        double frac = std::sqrt((double)r / ((uint64_t)1 << 53));
+        size_t i = (size_t)(frac*up_index_limit);
+        if(used.count(i))
+          continue;
+        bool added = add_out_to_get_random_outs2(amount_outs, result_outs, amount, i);
+        used.insert(i);
+        if(added)
+          ++j;
+        ++try_count;
+      }
+    }else
+    {
+      for(size_t i = 0; i != up_index_limit; i++)
+        add_out_to_get_random_outs2(amount_outs, result_outs, amount, i);
     }
   }
   return true;
