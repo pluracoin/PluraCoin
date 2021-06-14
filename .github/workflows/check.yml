@@ -117,6 +117,7 @@ jobs:
       - name: Build
         id: build
         run: |
+          sudo apt update
           sudo apt install -y libboost-all-dev
           build_folder="build/release"
           plura_ver=${GITHUB_SHA::7}
@@ -153,6 +154,7 @@ jobs:
       - name: Build
         id: build
         run: |
+          sudo apt update
           sudo apt-get purge '*boost*'
           sudo apt install -y libboost1.62-all-dev
           build_folder="build/release"
