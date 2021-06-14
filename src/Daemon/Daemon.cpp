@@ -448,11 +448,16 @@ int main(int argc, char* argv[])
         logger(ERROR, BRIGHT_RED) << "Couldn't parse fee amount";
         return 1;
       }
-      if (fee > CryptoNote::parameters::COIN) {
-        logger(ERROR, BRIGHT_RED) << "Maximum allowed fee is " 
-          << Common::Format::formatAmount(CryptoNote::parameters::COIN);
+
+      if (fee > CryptoNote::parameters::MAXIMUM_MASTERNODE_FEE) {
+        logger(ERROR, BRIGHT_RED) << "Maximum allowed masternode fee is "
+          << Common::Format::formatAmount(CryptoNote::parameters::MAXIMUM_MASTERNODE_FEE);
         return 1;
       }
+
+      if(fee) {
+          logger(INFO) << "CEPS masternode fee set to " << rpcConfig.nodeFeeAmountStr << " PLURA";
+        }
 
       rpcServer.setFeeAmount(fee);
     }
