@@ -4,7 +4,7 @@ PluraCoin (PLURA) - Anonymous cryptocurrency with higher resistance against  blo
 
 ### On *nix (Ubuntu 20.04 LTS reccommended)
 
-Dependencies: GCC 4.7.3 or later, CMake 2.8.6 or later, and Boost 1.58.
+Dependencies: GCC 4.7.3 or later, CMake 2.8.6 or later, and Boost 1.55, OpenSSL.
 
 You may download them from:
 
