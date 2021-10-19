@@ -594,7 +594,7 @@ int CryptoNoteProtocolHandler::processObjects(CryptoNoteConnectionContext& conte
       if (transactionHash != block_entry.block.transactionHashes[i]) {
         logger(Logging::DEBUGGING) << context << "transaction mismatch on NOTIFY_RESPONSE_GET_OBJECTS, \r\ntx_id = "
           << Common::podToHex(transactionHash) << ", dropping connection";
-        context.m_state = CryptoNoteConnectionContext::state_shutdown;
+        m_p2p->drop_connection(context, true);
         return 1;
       }
 
@@ -603,7 +603,7 @@ int CryptoNoteProtocolHandler::processObjects(CryptoNoteConnectionContext& conte
       if (tvc.m_verification_failed) {
         logger(Logging::DEBUGGING) << context << "transaction verification failed on NOTIFY_RESPONSE_GET_OBJECTS, \r\ntx_id = "
           << Common::podToHex(transactionHash) << ", dropping connection";
-        context.m_state = CryptoNoteConnectionContext::state_shutdown;
+        m_p2p->drop_connection(context, true);
         return 1;
       }
     }
@@ -614,7 +614,7 @@ int CryptoNoteProtocolHandler::processObjects(CryptoNoteConnectionContext& conte
 
     if (bvc.m_verification_failed) {
       logger(Logging::DEBUGGING) << context << "Block verification failed, dropping connection";
-      context.m_state = CryptoNoteConnectionContext::state_shutdown;
+      m_p2p->drop_connection(context, true);
       return 1;
     } else if (bvc.m_marked_as_orphaned) {
       logger(Logging::INFO) << context << "Block received at sync phase was marked as orphaned, dropping connection";
