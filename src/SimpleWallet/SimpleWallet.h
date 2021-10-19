@@ -128,7 +128,6 @@ namespace CryptoNote
     bool verify_message(const std::vector<std::string> &args);
 
     void printConnectionError() const;
-    uint64_t getMinimalFee();
 
     //---------------- IWalletLegacyObserver -------------------------
     virtual void initCompleted(std::error_code result) override;

@@ -1328,7 +1328,6 @@ bool RpcServer::on_get_stats_by_heights(const COMMAND_RPC_GET_STATS_BY_HEIGHTS::
       throw JsonRpc::JsonRpcError{
             CORE_RPC_ERROR_CODE_INTERNAL_ERROR, "Internal error: can't get stats for height" + std::to_string(height) };
     }
-    //entry.min_fee = m_core.getMinimalFeeForHeight(height);
     stats.push_back(entry);
   }
   res.stats = std::move(stats);
@@ -1366,7 +1365,6 @@ bool RpcServer::on_get_stats_by_heights_range(const COMMAND_RPC_GET_STATS_BY_HEI
         throw JsonRpc::JsonRpcError{
               CORE_RPC_ERROR_CODE_INTERNAL_ERROR, "Internal error: can't get stats for height" + std::to_string(height) };
       }
-      //entry.min_fee = m_core.getMinimalFeeForHeight(height);
       stats.push_back(entry);
     }
   } else {
@@ -1377,7 +1375,6 @@ bool RpcServer::on_get_stats_by_heights_range(const COMMAND_RPC_GET_STATS_BY_HEI
         throw JsonRpc::JsonRpcError{
               CORE_RPC_ERROR_CODE_INTERNAL_ERROR, "Internal error: can't get stats for height" + std::to_string(height) };
       }
-      //entry.min_fee = m_core.getMinimalFeeForHeight(height);
       stats.push_back(entry);
     }
   }
@@ -1640,7 +1637,6 @@ bool RpcServer::on_blocks_list_json(const COMMAND_RPC_GET_BLOCKS_LIST::request& 
     block_short.cumulative_size = blokBlobSize + tx_cumulative_block_size - minerTxBlobSize;
     block_short.transactions_count = blk.transactionHashes.size() + 1;
     block_short.difficulty = blockDiff;
-    block_short.min_fee = m_core.getMinimalFeeForHeight(i);
 
     res.blocks.push_back(block_short);
 
@@ -1673,7 +1669,6 @@ bool RpcServer::on_alt_blocks_list_json(const COMMAND_RPC_GET_ALT_BLOCKS_LIST::r
       block_short.cumulative_size = blokBlobSize + tx_cumulative_block_size - minerTxBlobSize;
       block_short.transactions_count = b.transactionHashes.size() + 1;
       block_short.difficulty = blockDiff;
-      block_short.min_fee = m_core.getMinimalFeeForHeight(block_height);
 
       res.alt_blocks.push_back(block_short);
     }
