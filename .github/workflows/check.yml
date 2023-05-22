@@ -11,7 +11,7 @@ on:
 jobs:
   build-windows:
     name: Windows
-    runs-on: windows-latest
+    runs-on: windows-2019
     env:
       BOOST_ROOT: C:\thirdparties\boost-1.72.0
     steps:
@@ -21,7 +21,7 @@ jobs:
           ref: ${{ github.ref }}
 
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@v1.1
 
       - name: Install OpenSSL
         run: choco install openssl
@@ -40,7 +40,7 @@ jobs:
           $build_folder = "build"
           $sha = "${{ github.sha }}"
           $plura_ver = $sha.SubString(0,7)
-          $release_name = "pluracoin-cli-win64-$plura_ver"
+          $release_name = "plura-cli-win64-$plura_ver"
           mkdir "$build_folder"
           cd "$build_folder"
           cmake -G "Visual Studio 16 2019" -A x64 -DBOOST_ROOT="$env:BOOST_ROOT" -DBOOST_INCLUDE_DIRS="$env:BOOST_ROOT/include" ..
@@ -51,23 +51,77 @@ jobs:
           $asset_path = "./$build_folder/src/Release/$release_name.zip"
           mkdir "$release_name"
           cp *.exe "$release_name/"
-          echo "::set-output name=sha256::${sha256}"
-          echo "::set-output name=release_name::${release_name}.zip"
-          echo "::set-output name=asset_path::${asset_path}"
-          echo "::set-output name=plura_ver::${plura_ver}"
-          echo "::set-output name=artifact_path::$build_folder/src/Release/$release_name"
+          echo "sha256=${sha256}" >> $env:GITHUB_OUTPUT
+          echo "release_name=${release_name}.zip" >> $env:GITHUB_OUTPUT
+          echo "asset_path=${asset_path}" >> $env:GITHUB_OUTPUT
+          echo "plura_ver=${plura_ver}" >> $env:GITHUB_OUTPUT
+          echo "artifact_path=$build_folder/src/Release/$release_name" >> $env:GITHUB_OUTPUT
 
       - name: Upload To GH Artifacts
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.build.outputs.release_name }}
           path: ${{ steps.build.outputs.artifact_path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  build-mingw:
+    name: MinGW
+    runs-on: windows-2019
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            git
+            base-devel
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-openssl
+
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Prepare version
+        shell: powershell
+        id: setup
+        run: |
+          $plura_ver="${{ github.sha }}".SubString(0,7)
+          $release_name="plura-cli-win64-mingw-$plura_ver"
+          echo "release_name=${release_name}" >> $env:GITHUB_OUTPUT
+      - name: Build
+        shell: msys2 {0}
+        id: build
+        run: |
+          ls
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DSTATIC=ON
+          cmake --build . --config Release
+      - name: Prepare release
+        shell: msys2 {0}
+        run: |
+          mkdir build/pluracoin
+          mv build/src/pluracoind.exe build/pluracoin
+          mv build/src/simplewallet.exe build/pluracoin
+          mv build/src/greenwallet.exe build/pluracoin
+          mv build/src/optimizer.exe build/pluracoin
+          mv build/src/walletd.exe build/pluracoin
+          mv build/src/vanitygen.exe build/pluracoin
+      - name: Upload To GH Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.setup.outputs.release_name }}
+          path: build/pluracoin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build-macos:
     name: macOS
-    runs-on: macos-latest
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@master
         with:
@@ -79,12 +133,12 @@ jobs:
         run: |
           build_folder="build/"
           plura_ver=${GITHUB_SHA::7}
-          release_name="pluracoin-cli-macos-$plura_ver"
+          release_name="plura-cli-macOS-$plura_ver"
           brew install --force openssl boost gcc
           brew link openssl boost --force
           mkdir "$build_folder"
           cd "$build_folder"
-          cmake -DCMAKE_C_FLAGS="-mmacosx-version-min=10.12" -DCMAKE_CXX_FLAGS="-mmacosx-version-min=10.12" ..
+          cmake -DCMAKE_C_FLAGS="-mmacosx-version-min=10.12" -DCMAKE_CXX_FLAGS="-mmacosx-version-min=10.12" -DOPENSSL_USE_STATIC_LIBS=ON ..
           make
           mkdir "$release_name"
           exeFiles=()
@@ -94,14 +148,50 @@ jobs:
           zip -r "$release_name".zip "$release_name"
           sha256=$(shasum -a 256 "$release_name".zip | awk '{print toupper($1)}')
           asset_path="./$build_folder$release_name.zip"
-          echo "::set-output name=sha256::${sha256}"
-          echo "::set-output name=release_name::${release_name}.zip"
-          echo "::set-output name=asset_path::${asset_path}"
-          echo "::set-output name=plura_ver::${plura_ver}"
-          echo "::set-output name=artifact_path::$build_folder/$release_name"
+          echo "sha256=${sha256}" >> $GITHUB_OUTPUT
+          echo "release_name=${release_name}.zip" >> $GITHUB_OUTPUT
+          echo "asset_path=${asset_path}" >> $GITHUB_OUTPUT
+          echo "plura_ver=${plura_ver}" >> $GITHUB_OUTPUT
+          echo "artifact_path=$build_folder/$release_name" >> $GITHUB_OUTPUT
 
       - name: Upload To GH Artifacts
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.build.outputs.release_name }}
+          path: ${{ steps.build.outputs.artifact_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-ubuntu22:
+    name: Ubuntu 22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Build
+        id: build
+        run: |
+          sudo apt-get update && sudo apt-get install -y libboost-all-dev
+          build_folder="build/release"
+          plura_ver=${GITHUB_SHA::7}
+          release_name=plura-cli-ubuntu22.04-"$plura_ver"
+          mkdir -p "$build_folder"
+          cd "$build_folder"
+          cmake -D ARCH=default -D CMAKE_BUILD_TYPE=Release -D CMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -D BOOST_IGNORE_SYSTEM_PATHS_DEFAULT=ON -D BOOST_ROOT=/usr ../..
+          make
+          mkdir -p "$release_name"
+          exeFiles=()
+          for f in src/*; do [[ -x $f && -f $f ]] && exeFiles+=( "$f" ); done
+          strip "${exeFiles[@]}"
+          cp "${exeFiles[@]}" "$release_name/"
+          echo "release_name=${release_name}" >> $GITHUB_OUTPUT
+          echo "artifact_path=$build_folder/$release_name" >> $GITHUB_OUTPUT
+
+      - name: Upload To GH Artifacts
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.build.outputs.release_name }}
           path: ${{ steps.build.outputs.artifact_path }}
@@ -120,11 +210,10 @@ jobs:
       - name: Build
         id: build
         run: |
-          sudo apt update
-          sudo apt install -y libboost-all-dev
+          sudo apt-get update && sudo apt-get install -y libboost-all-dev
           build_folder="build/release"
           plura_ver=${GITHUB_SHA::7}
-          release_name=pluracoin-cli-ubuntu20.04-"$plura_ver"
+          release_name=plura-cli-ubuntu20.04-"$plura_ver"
           mkdir -p "$build_folder"
           cd "$build_folder"
           cmake -D ARCH=default -D CMAKE_BUILD_TYPE=Release -D CMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -D BOOST_IGNORE_SYSTEM_PATHS_DEFAULT=ON -D BOOST_ROOT=/usr ../..
@@ -134,49 +223,11 @@ jobs:
           for f in src/*; do [[ -x $f && -f $f ]] && exeFiles+=( "$f" ); done
           strip "${exeFiles[@]}"
           cp "${exeFiles[@]}" "$release_name/"
-          echo "::set-output name=release_name::${release_name}"
-          echo "::set-output name=artifact_path::$build_folder/$release_name"
+          echo "release_name=${release_name}" >> $GITHUB_OUTPUT
+          echo "artifact_path=$build_folder/$release_name" >> $GITHUB_OUTPUT
 
       - name: Upload To GH Artifacts
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: ${{ steps.build.outputs.release_name }}
-          path: ${{ steps.build.outputs.artifact_path }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-ubuntu18:
-    name: Ubuntu 18.04
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@master
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref }}
-
-      - name: Build
-        id: build
-        run: |
-          sudo apt update
-          sudo apt-get purge '*boost*'
-          sudo apt install -y libboost1.62-all-dev
-          build_folder="build/release"
-          plura_ver=${GITHUB_SHA::7}
-          release_name=pluracoin-cli-ubuntu18.04-"$plura_ver"
-          mkdir -p "$build_folder"
-          cd "$build_folder"
-          cmake -D ARCH=default -D CMAKE_BUILD_TYPE=Release -D CMAKE_POSITION_INDEPENDENT_CODE:BOOL=true -D BOOST_IGNORE_SYSTEM_PATHS_DEFAULT=ON -D BOOST_ROOT=/usr ../..
-          make
-          mkdir -p "$release_name"
-          exeFiles=()
-          for f in src/*; do [[ -x $f && -f $f ]] && exeFiles+=( "$f" ); done
-          strip "${exeFiles[@]}"
-          cp "${exeFiles[@]}" "$release_name/"
-          echo "::set-output name=release_name::${release_name}"
-          echo "::set-output name=artifact_path::$build_folder/$release_name"
-
-      - name: Upload To GH Artifacts
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.build.outputs.release_name }}
           path: ${{ steps.build.outputs.artifact_path }}
