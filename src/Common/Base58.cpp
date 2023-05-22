@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Base58.h"
 
@@ -97,13 +97,13 @@ namespace Tools
         uint64_t res = 0;
         switch (9 - size)
         {
-        case 1:            res |= *data++; /* FALLTHRU */
-        case 2: res <<= 8; res |= *data++; /* FALLTHRU */
-        case 3: res <<= 8; res |= *data++; /* FALLTHRU */
-        case 4: res <<= 8; res |= *data++; /* FALLTHRU */
-        case 5: res <<= 8; res |= *data++; /* FALLTHRU */
-        case 6: res <<= 8; res |= *data++; /* FALLTHRU */
-        case 7: res <<= 8; res |= *data++; /* FALLTHRU */
+        case 1:            res |= *data++; /* fallthrough */
+        case 2: res <<= 8; res |= *data++; /* fallthrough */
+        case 3: res <<= 8; res |= *data++; /* fallthrough */
+        case 4: res <<= 8; res |= *data++; /* fallthrough */
+        case 5: res <<= 8; res |= *data++; /* fallthrough */
+        case 6: res <<= 8; res |= *data++; /* fallthrough */
+        case 7: res <<= 8; res |= *data++; /* fallthrough */
         case 8: res <<= 8; res |= *data; break;
         default: assert(false);
         }

@@ -180,7 +180,7 @@ void WalletLegacy::removeObserver(IWalletLegacyObserver* observer) {
   m_observerManager.remove(observer);
 }
 
-void WalletLegacy::initAndGenerate(const std::string& password) {
+void WalletLegacy::initAndGenerateNonDeterministic(const std::string& password) {
   {
     std::unique_lock<std::mutex> stateLock(m_cacheMutex);
 
@@ -581,24 +581,24 @@ uint64_t WalletLegacy::pendingBalance() {
 }
 
 uint64_t WalletLegacy::unmixableBalance() {
-	std::unique_lock<std::mutex> lock(m_cacheMutex);
-	throwIfNotInitialised();
+  std::unique_lock<std::mutex> lock(m_cacheMutex);
+  throwIfNotInitialised();
 
-	std::vector<TransactionOutputInformation> outputs;
-	m_transferDetails->getOutputs(outputs, ITransfersContainer::IncludeKeyUnlocked);
+  std::vector<TransactionOutputInformation> outputs;
+  m_transferDetails->getOutputs(outputs, ITransfersContainer::IncludeKeyUnlocked);
 
-	uint64_t money = 0;
-	
-	for (size_t i = 0; i < outputs.size(); ++i) {
-		const auto& out = outputs[i];
-		if (!m_transactionsCache.isUsed(out)) {
-			if (!is_valid_decomposed_amount(out.amount)) {
-				money += out.amount;
-			}
-		}
-	}
+  uint64_t money = 0;
 
-	return money;
+  for (size_t i = 0; i < outputs.size(); ++i) {
+    const auto& out = outputs[i];
+    if (!m_transactionsCache.isUsed(out)) {
+      if (!is_valid_decomposed_amount(out.amount)) {
+        money += out.amount;
+      }
+    }
+  }
+
+  return money;
 }
 
 size_t WalletLegacy::getTransactionCount() {

@@ -1,6 +1,6 @@
 // Copyright (c) 2018, The TurtleCoin Developers
 // Copyright (c) 2018-2019, The Karbo Developers
-// 
+//
 // Please see the included LICENSE file for more information.
 
 ///////////////////////////
@@ -9,7 +9,9 @@
 
 #include <Common/StringTools.h>
 
+#include <chrono>
 #include <iostream>
+#include <thread>
 
 #include <Common/ColouredMsg.h>
 #include <GreenWallet/CommandImplementations.h>
@@ -18,6 +20,7 @@
 #include <GreenWallet/Types.h>
 #include <GreenWallet/WalletConfig.h>
 
+#define _GLIBCXX_USE_NANOSLEEP 1
 void checkForNewTransactions(std::shared_ptr<WalletInfo> walletInfo)
 {
     walletInfo->wallet.updateInternalCache();
@@ -26,10 +29,10 @@ void checkForNewTransactions(std::shared_ptr<WalletInfo> walletInfo)
 
     if (newTransactionCount != walletInfo->knownTransactionCount)
     {
-        for (size_t i = walletInfo->knownTransactionCount; 
+        for (size_t i = walletInfo->knownTransactionCount;
                     i < newTransactionCount; i++)
         {
-            const CryptoNote::WalletTransaction t 
+            const CryptoNote::WalletTransaction t
                 = walletInfo->wallet.getTransaction(i);
 
             /* Don't print outgoing or fusion transfers */

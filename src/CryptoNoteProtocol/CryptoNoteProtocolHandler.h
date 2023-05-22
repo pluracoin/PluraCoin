@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -65,7 +65,7 @@ namespace CryptoNote
       std::lock_guard<std::recursive_mutex> lk(m_stempool_mutex);
       auto r = m_stempool.insert(tx_blob_by_hash::value_type(txid, tx_blob));
 
-      return true;
+      return r.second;
     }
 
     bool removeTransaction(const Crypto::Hash& txid) {
@@ -143,6 +143,9 @@ namespace CryptoNote
     void requestMissingPoolTransactions(const CryptoNoteConnectionContext& context);
     bool select_dandelion_stem();
     bool fluffStemPool();
+    void printDandelions() const override;
+
+    std::atomic<bool> m_init_select_dandelion_called;
 
   private:
     //----------------- commands handlers ----------------------------------------------

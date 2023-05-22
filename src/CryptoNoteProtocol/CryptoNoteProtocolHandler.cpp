@@ -2,20 +2,20 @@
 // Copyright (c) 2014-2018, The Forknote project
 // Copyright (c) 2016-2018, The Karbowanec developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "CryptoNoteProtocolHandler.h"
 
@@ -62,6 +62,7 @@ CryptoNoteProtocolHandler::CryptoNoteProtocolHandler(const Currency& currency, S
   m_p2p(p_net_layout),
   m_synchronized(false),
   m_stop(false),
+  m_init_select_dandelion_called(false),
   m_observedHeight(0),
   m_peersCount(0),
   m_dandelionStemSelectInterval(CryptoNote::parameters::DANDELION_EPOCH),
@@ -78,6 +79,15 @@ size_t CryptoNoteProtocolHandler::getPeerCount() const {
   return m_peersCount;
 }
 
+void CryptoNoteProtocolHandler::printDandelions() const {
+  if (m_dandelion_stem.size() == 0)
+    std::cout << "No dandelion connections" << ENDL;
+  std::stringstream ss;
+  for (const auto& d : m_dandelion_stem) {
+    ss << Common::ipAddressToString(d.m_remote_ip) << ":" << d.m_remote_port << std::endl;
+  }
+  std::cout << ss.str();
+}
 void CryptoNoteProtocolHandler::set_p2p_endpoint(IP2pEndpoint* p2p) {
   if (p2p)
     m_p2p = p2p;
@@ -420,19 +430,15 @@ int CryptoNoteProtocolHandler::handle_request_get_objects(int command, NOTIFY_RE
   logger(Logging::TRACE) << context << "Received NOTIFY_REQUEST_GET_OBJECTS";
 
   /* Essentially, one can send such a large amount of IDs that core exhausts
-   * all free memory. This issue can theoretically be exploited using very
-   * large CN blockchains, such as Monero.
-   *
-   * This is a partial fix. Thanks and credit given to CryptoNote author
-   * 'cryptozoidberg' for collaboration and the fix. Also thanks to
-   * 'moneromooo'. Referencing HackerOne report #506595.
+   * all free memory. Credits to 'cryptozoidberg', 'moneromooo'. 
+   * Referencing HackerOne report #506595.
    */
   if (arg.blocks.size() + arg.txs.size() > CURRENCY_PROTOCOL_MAX_OBJECT_REQUEST_COUNT)
   {
     logger(Logging::ERROR) << context << 
-      "Requested objects count is too big ("
-      << arg.blocks.size() << ") expected not more then "
-      << CURRENCY_PROTOCOL_MAX_OBJECT_REQUEST_COUNT;
+      "Requested objects count (" << arg.blocks.size() 
+      << " blocks + " << arg.txs.size() << " txs) exceeded the limit of "
+      << CURRENCY_PROTOCOL_MAX_OBJECT_REQUEST_COUNT << ", dropping connection";
     m_p2p->drop_connection(context, true);
     return 1;
   }
@@ -594,7 +600,7 @@ int CryptoNoteProtocolHandler::processObjects(CryptoNoteConnectionContext& conte
       if (transactionHash != block_entry.block.transactionHashes[i]) {
         logger(Logging::DEBUGGING) << context << "transaction mismatch on NOTIFY_RESPONSE_GET_OBJECTS, \r\ntx_id = "
           << Common::podToHex(transactionHash) << ", dropping connection";
-        m_p2p->drop_connection(context, true);
+        context.m_state = CryptoNoteConnectionContext::state_shutdown;
         return 1;
       }
 
@@ -603,7 +609,7 @@ int CryptoNoteProtocolHandler::processObjects(CryptoNoteConnectionContext& conte
       if (tvc.m_verification_failed) {
         logger(Logging::DEBUGGING) << context << "transaction verification failed on NOTIFY_RESPONSE_GET_OBJECTS, \r\ntx_id = "
           << Common::podToHex(transactionHash) << ", dropping connection";
-        m_p2p->drop_connection(context, true);
+        context.m_state = CryptoNoteConnectionContext::state_shutdown;
         return 1;
       }
     }
@@ -635,13 +641,14 @@ int CryptoNoteProtocolHandler::processObjects(CryptoNoteConnectionContext& conte
 }
 
 bool CryptoNoteProtocolHandler::select_dandelion_stem() {
+  m_init_select_dandelion_called = true;
   m_dandelion_stem.clear();
-
-  //TODO: select from outgoing connections preferably supporting Dandelion: context.version >= P2P_VERSION_4)
 
   std::vector<CryptoNoteConnectionContext> alive_peers;
   m_p2p->for_each_connection([&](const CryptoNoteConnectionContext& ctx, PeerIdType peer_id) {
-    if ((ctx.m_state == CryptoNoteConnectionContext::state_normal || ctx.m_state == CryptoNoteConnectionContext::state_synchronizing) && !ctx.m_is_income) {
+    if ((ctx.m_state == CryptoNoteConnectionContext::state_normal || 
+         ctx.m_state == CryptoNoteConnectionContext::state_synchronizing) && 
+        !ctx.m_is_income && ctx.version >= P2P_VERSION_4) {
       alive_peers.push_back(ctx);
     }
   });
@@ -666,11 +673,11 @@ bool CryptoNoteProtocolHandler::select_dandelion_stem() {
   }
 
   logger(Logging::WARNING) << "No alive peers for dandelion stem...";
-  
   return false;
 }
 
 
+// Fail-safe to ensure stem txs are broadcasted
 bool CryptoNoteProtocolHandler::fluffStemPool() {
   if (!m_stemPool.hasTransactions()) {
     NOTIFY_NEW_TRANSACTIONS::request notification;
@@ -693,9 +700,18 @@ bool CryptoNoteProtocolHandler::fluffStemPool() {
   return true;
 }
 bool CryptoNoteProtocolHandler::on_idle() {
-  m_dandelionStemSelectInterval.call([&]() { return select_dandelion_stem(); });
-  m_dandelionStemFluffInterval.call([&]() { return fluffStemPool(); });
-  return m_core.on_idle();
+  try {
+    m_core.on_idle();
+    // We don't have peers yet to select dandelion stems
+    if (m_init_select_dandelion_called) {
+      m_dandelionStemSelectInterval.call(std::bind(&CryptoNoteProtocolHandler::select_dandelion_stem, this));
+    }
+    m_dandelionStemFluffInterval.call(std::bind(&CryptoNoteProtocolHandler::fluffStemPool, this));
+  } catch (std::exception& e) {
+    logger(DEBUGGING) << "exception in on_idle: " << e.what();
+  }
+
+  return true;
 }
 
 int CryptoNoteProtocolHandler::doPushLiteBlock(NOTIFY_NEW_LITE_BLOCK::request arg, CryptoNoteConnectionContext &context,
@@ -889,12 +905,14 @@ bool CryptoNoteProtocolHandler::request_missing_objects(CryptoNoteConnectionCont
 bool CryptoNoteProtocolHandler::on_connection_synchronized() {
   bool val_expected = false;
   if (m_synchronized.compare_exchange_strong(val_expected, true)) {
-    std::cout << ENDL << ENDL << "**********************************************************************" << ENDL
+    std::cout << ENDL << "**********************************************************************" << ENDL
       << "You are now synchronized with the network. You may now start simplewallet." << ENDL
-      << "Please note, that the blockchain will be saved only after you quit the daemon with \"exit\" command or if you use \"save\" command." << ENDL
+      << ENDL
+      << "Please note, that the blockchain will be saved only after you quit the daemon with \"exit\" command or if you use \"save\" command. "
       << "Otherwise, you will possibly need to synchronize the blockchain again." << ENDL
+      << ENDL
       << "Use \"help\" command to see the list of available commands." << ENDL
-      << "**********************************************************************" << ENDL << ENDL;
+      << "**********************************************************************" << ENDL;
     m_core.on_synchronized();
 
     uint32_t height;
@@ -1062,11 +1080,11 @@ void CryptoNoteProtocolHandler::relay_transactions(NOTIFY_NEW_TRANSACTIONS::requ
       auto transactionBinary = asBinaryArray(*tx_blob_it);
       Crypto::Hash transactionHash = Crypto::cn_fast_hash(transactionBinary.data(), transactionBinary.size());
       if (!m_stemPool.hasTransaction(transactionHash)) {
-        logger(Logging::DEBUGGING) << "Adding relayed transaction " << transactionHash << " to stempool";      
+        logger(Logging::DEBUGGING) << "Adding relayed transaction " << transactionHash << " to stempool";
         auto txblob = *tx_blob_it;
-        m_dispatcher.remoteSpawn([this, transactionHash, txblob] {
+        //m_dispatcher.remoteSpawn([this, transactionHash, txblob] {
           m_stemPool.addTransaction(transactionHash, txblob);
-        });
+        //});
         txHashes.push_back(transactionHash);
       }
     }
@@ -1078,7 +1096,7 @@ void CryptoNoteProtocolHandler::relay_transactions(NOTIFY_NEW_TRANSACTIONS::requ
       for (const auto& dandelion_peer : m_dandelion_stem) {
         if (dandelion_peer.m_state == CryptoNoteConnectionContext::state_normal || dandelion_peer.m_state == CryptoNoteConnectionContext::state_synchronizing) {
           if (!post_notify<NOTIFY_NEW_TRANSACTIONS>(*m_p2p, arg, dandelion_peer)) {
-            logger(Logging::WARNING, Logging::BRIGHT_YELLOW) << "Failed to relay transactions to Dandelion peer " << dandelion_peer.m_connection_id << ", broadcasting in dandelion fluff mode";
+            logger(Logging::WARNING, Logging::BRIGHT_YELLOW) << "Failed to relay transactions to Dandelion peer " << dandelion_peer.m_remote_ip << ", broadcasting in dandelion fluff mode";
             arg.stem = false;
             for (const auto& h : txHashes) {
               m_stemPool.removeTransaction(h);

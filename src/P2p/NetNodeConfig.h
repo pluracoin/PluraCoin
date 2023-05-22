@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -38,7 +38,8 @@ namespace CryptoNote {
                                                                                                " If this option is given the options add-priority-node and seed-node are ignored" };
   const command_line::arg_descriptor<std::vector<std::string> > arg_p2p_seed_node          = { "seed-node", "Connect to a node to retrieve peer addresses, and disconnect" };
   const command_line::arg_descriptor<std::string> arg_ban_list                             = { "ban-list", "Specify ban list file, one IP address per line", "", true };
-  const command_line::arg_descriptor<bool> arg_p2p_hide_my_port                            = { "hide-my-port", "Do not announce yourself as peerlist candidate", false, true };
+  const command_line::arg_descriptor<bool>        arg_p2p_hide_my_port                     = { "hide-my-port", "Do not announce yourself as peerlist candidate", false, true };
+  const command_line::arg_descriptor<uint32_t>    arg_connections_count                    = { "connections", "Set number of connected peers", CryptoNote::P2P_DEFAULT_CONNECTIONS_COUNT };
 class NetNodeConfig {
 public:
   NetNodeConfig();
@@ -58,6 +59,7 @@ public:
   std::vector<uint32_t> getBanList() const;
   bool getHideMyPort() const;
   std::string getConfigFolder() const;
+  uint32_t getConnectionsCount() const;
 
   void setP2pStateFilename(const std::string& filename);
   void setTestnet(bool isTestnet);
@@ -71,6 +73,7 @@ public:
   void setSeedNodes(const std::vector<NetworkAddress>& addresses);
   void setHideMyPort(bool hide);
   void setConfigFolder(const std::string& folder);
+  void setConnectionsCount(uint32_t count);
 
 private:
   std::string bindIp;
@@ -86,6 +89,7 @@ private:
   std::string configFolder;
   std::string p2pStateFilename;
   bool testnet;
+  uint32_t connectionsCount;
 };
 
 } //namespace nodetool

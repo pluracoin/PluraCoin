@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Karbo.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Karbo is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Karbo is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Karbo.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Dispatcher.h"
 #include <cassert>
@@ -343,22 +343,22 @@ int Dispatcher::getKqueue() const {
 
 NativeContext& Dispatcher::getReusableContext() {
   if(firstReusableContext == nullptr) {
-   uctx* newlyCreatedContext = new uctx;
-   uint8_t* stackPointer = new uint8_t[STACK_SIZE];
-   static_cast<uctx*>(newlyCreatedContext)->uc_stack.ss_sp = stackPointer;
-   static_cast<uctx*>(newlyCreatedContext)->uc_stack.ss_size = STACK_SIZE;
+    uctx* newlyCreatedContext = new uctx;
+    uint8_t* stackPointer = new uint8_t[STACK_SIZE];
+    static_cast<uctx*>(newlyCreatedContext)->uc_stack.ss_sp = stackPointer;
+    static_cast<uctx*>(newlyCreatedContext)->uc_stack.ss_size = STACK_SIZE;
 
-   ContextMakingData makingData{ newlyCreatedContext, this};
-   makecontext(static_cast<uctx*>(newlyCreatedContext), reinterpret_cast<void(*)()>(contextProcedureStatic), reinterpret_cast<intptr_t>(&makingData));
+    ContextMakingData makingData{ newlyCreatedContext, this};
+    makecontext(static_cast<uctx*>(newlyCreatedContext), reinterpret_cast<void(*)()>(contextProcedureStatic), reinterpret_cast<intptr_t>(&makingData));
 
-   uctx* oldContext = static_cast<uctx*>(currentContext->uctx);
-   if (swapcontext(oldContext, newlyCreatedContext) == -1) {
-     throw std::runtime_error("Dispatcher::getReusableContext, swapcontext failed, " + lastErrorMessage());
-   }
+    uctx* oldContext = static_cast<uctx*>(currentContext->uctx);
+    if (swapcontext(oldContext, newlyCreatedContext) == -1) {
+      throw std::runtime_error("Dispatcher::getReusableContext, swapcontext failed, " + lastErrorMessage());
+    }
 
-   assert(firstReusableContext != nullptr);
-   assert(firstReusableContext->uctx == newlyCreatedContext);
-   firstReusableContext->stackPtr = stackPointer;
+    assert(firstReusableContext != nullptr);
+    assert(firstReusableContext->uctx == newlyCreatedContext);
+    firstReusableContext->stackPtr = stackPointer;
   }
 
   NativeContext* context = firstReusableContext;

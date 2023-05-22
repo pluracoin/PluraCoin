@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "gtest/gtest.h"
 
@@ -668,7 +668,7 @@ TEST_F(InProcessNodeTests, getPoolDiffereceActualBC) {
     transactionHashes.insert(CryptoNote::getObjectHash(tx));
     CryptoNote::tx_verification_context tvc = boost::value_initialized<tx_verification_context>();
     bool keptByBlock = false;
-    coreStub.handleIncomingTransaction(tx, CryptoNote::getObjectHash(tx), CryptoNote::getObjectBinarySize(tx), tvc, keptByBlock);
+    coreStub.handleIncomingTransaction(tx, CryptoNote::getObjectHash(tx), CryptoNote::getObjectBinarySize(tx), tvc, keptByBlock, node.getLastLocalBlockHeight());
     ASSERT_TRUE(tvc.m_added_to_pool);
     ASSERT_FALSE(tvc.m_verification_failed);
   }
@@ -707,7 +707,7 @@ TEST_F(InProcessNodeTests, getPoolDiffereceNotActualBC) {
     transactionHashes.insert(CryptoNote::getObjectHash(tx));
     CryptoNote::tx_verification_context tvc = boost::value_initialized<tx_verification_context>();
     bool keptByBlock = false;
-    coreStub.handleIncomingTransaction(tx, CryptoNote::getObjectHash(tx), CryptoNote::getObjectBinarySize(tx), tvc, keptByBlock);
+    coreStub.handleIncomingTransaction(tx, CryptoNote::getObjectHash(tx), CryptoNote::getObjectBinarySize(tx), tvc, keptByBlock, node.getLastLocalBlockHeight());
     ASSERT_TRUE(tvc.m_added_to_pool);
     ASSERT_FALSE(tvc.m_verification_failed);
   }

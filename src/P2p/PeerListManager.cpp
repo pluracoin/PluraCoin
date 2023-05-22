@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "PeerListManager.h"
 
@@ -164,7 +164,7 @@ bool PeerlistManager::is_ip_allowed(uint32_t ip) const
 bool PeerlistManager::get_peerlist_head(std::vector<PeerlistEntry>& bs_head, uint32_t depth) const
 {
   const peers_indexed::index<by_time>::type& by_time_index = m_peers_white.get<by_time>();
-  uint32_t cnt = 0;
+  //uint32_t cnt = 0;
 
   BOOST_REVERSE_FOREACH(const peers_indexed::value_type& vl, by_time_index)
   {
@@ -238,6 +238,7 @@ bool PeerlistManager::append_with_peer_anchor(const AnchorPeerlistEntry& ple)
   }
   return false;
 }
+//--------------------------------------------------------------------------------------------------
 bool PeerlistManager::append_with_peer_white(const PeerlistEntry& ple)
 {
   try {

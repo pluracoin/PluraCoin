@@ -1,20 +1,20 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2016-2017 The Pluracoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -25,6 +25,7 @@
 #include <thread>
 #include <unordered_set>
 
+#include "HTTP/httplib.h"
 #include "../CryptoNoteConfig.h"
 #include "Common/ObserverManager.h"
 #include "INode.h"
@@ -37,8 +38,6 @@ namespace System {
 }
 
 namespace CryptoNote {
-
-class HttpClient;
 
 class INodeRpcProxyObserver {
 public:
@@ -112,6 +111,7 @@ public:
   const std::string m_nodeHost;
   const unsigned short m_nodePort;
   const bool m_daemon_ssl;
+  std::string m_node_url;
 
   virtual void setRootCert(const std::string &path) override;
   virtual void disableVerify() override;
@@ -127,7 +127,6 @@ private:
   bool updatePoolStatus();
   void updatePeerCount(size_t peerCount);
   void updatePoolState(const std::vector<std::unique_ptr<ITransactionReader>>& addedTxs, const std::vector<Crypto::Hash>& deletedTxsIds);
-  void getFeeAddress();
 
   std::error_code doRelayTransaction(const CryptoNote::Transaction& transaction);
   std::error_code doGetRandomOutsByAmounts(std::vector<uint64_t>& amounts, uint64_t outsCount,
@@ -174,7 +173,9 @@ private:
   Tools::ObserverManager<CryptoNote::INodeRpcProxyObserver> m_rpcProxyObserverManager;
 
   unsigned int m_rpcTimeout;
-  HttpClient* m_httpClient = nullptr;
+  httplib::Client* m_httpClient = nullptr;
+
+  httplib::Headers m_requestHeaders;
   System::Event* m_httpEvent = nullptr;
 
   uint64_t m_pullInterval;
@@ -203,6 +204,7 @@ private:
   std::unordered_set<Crypto::Hash> m_knownTxs;
 
   bool m_connected;
+  bool m_initial;
   std::string m_fee_address;
   uint64_t m_fee_amount = 0;
   std::string m_daemon_cert;

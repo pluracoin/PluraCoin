@@ -2,38 +2,33 @@
 // Copyright (c) 2016, The Forknote developers
 // Copyright (c) 2016, The Karbowanec developers
 // Copyright (c) 2018, The Pluracoin developers
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "version.h"
-
-#include <iostream>
-#include <string>
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
 #include "DaemonCommandsHandler.h"
 
+#include "crypto/hash.h"
 #include "Common/FormatTools.h"
 #include "Common/SignalHandler.h"
 #include "Common/StringTools.h"
 #include "Common/PathTools.h"
-#include "Common/DnsTools.h"
-#include <Common/ColouredMsg.h>
-#include "crypto/hash.h"
+#include "Common/ColouredMsg.h"
 #include "Checkpoints/CheckpointsData.h"
 #include "CryptoNoteCore/CryptoNoteTools.h"
 #include "CryptoNoteCore/Core.h"
@@ -42,17 +37,20 @@
 #include "CryptoNoteCore/MinerConfig.h"
 #include "CryptoNoteProtocol/CryptoNoteProtocolHandler.h"
 #include "CryptoNoteProtocol/ICryptoNoteProtocolQuery.h"
-#include "P2p/NetNode.h"
-#include "P2p/NetNodeConfig.h"
+#include "HTTP/httplib.h"
+#include "Logging/LoggerManager.h"
 #include "Rpc/RpcServer.h"
 #include "Rpc/RpcServerConfig.h"
+#include "Rpc/JsonRpc.h"
+#include "P2p/NetNode.h"
+#include "P2p/NetNodeConfig.h"
+#include "Serialization/SerializationTools.h"
 #include "version.h"
-
-#include <Logging/LoggerManager.h>
 
 #if defined(WIN32)
 #include <crtdbg.h>
 #endif
+#define CHECK_FOR_UPDATE_ENDPOINT "/repos/pluracoin/pluracoin/tags"
 
 using Common::JsonValue;
 using namespace CryptoNote;
@@ -70,11 +68,11 @@ namespace
   const command_line::arg_descriptor<bool>        arg_print_genesis_tx          = { "print-genesis-tx", "Prints genesis' block tx hex to insert it to config and exits" };
   const command_line::arg_descriptor<bool>        arg_testnet_on                = { "testnet", "Used to deploy test nets. Checkpoints and hardcoded seeds are ignored, "
     "network id is changed. Use it with --data-dir flag. The wallet must be launched with --testnet flag.", false };
-  const command_line::arg_descriptor<std::string> arg_load_checkpoints          = { "load-checkpoints", "<filename> Load checkpoints from csv file.", "" };
+  const command_line::arg_descriptor<std::string> arg_load_checkpoints          = { "load-checkpoints", "<filename> Load checkpoints from csv file", "" };
   const command_line::arg_descriptor<bool>        arg_disable_checkpoints       = { "without-checkpoints", "Synchronize without checkpoints" };
+  const command_line::arg_descriptor<bool>        arg_no_blobs                  = { "without-blobs", "Don't use hashing blobs cache in PoW validation", false, false };
+  const command_line::arg_descriptor<bool>        arg_allow_deep_reorg          = { "allow-reorg", "Allow deep reorganization", false, false };
   const command_line::arg_descriptor<std::string> arg_rollback                  = { "rollback", "Rollback blockchain to <height>", "", true };
-
-  const command_line::arg_descriptor<bool>        arg_allow_ipban = {"allow-ip-ban", "Allow RPC to ban remote nodes. Do not enable on public IP!"};
 
   bool command_line_preprocessor(const boost::program_options::variables_map &vm, LoggerRef &logger) {
     bool exit = false;
@@ -138,7 +136,7 @@ int main(int argc, char* argv[])
 
     po::options_description desc_cmd_only("Command line options");
     po::options_description desc_cmd_sett("Command line options and settings options");
-    desc_cmd_sett.add_options() 
+    desc_cmd_sett.add_options()
       ("enable-blockchain-indexes,i", po::bool_switch()->default_value(false), "Enable blockchain indexes");
 
     command_line::add_arg(desc_cmd_only, command_line::arg_help);
@@ -156,9 +154,9 @@ int main(int argc, char* argv[])
     command_line::add_arg(desc_cmd_sett, arg_print_genesis_tx);
     command_line::add_arg(desc_cmd_sett, arg_load_checkpoints);
     command_line::add_arg(desc_cmd_sett, arg_disable_checkpoints);
+    command_line::add_arg(desc_cmd_sett, arg_no_blobs);
+    command_line::add_arg(desc_cmd_sett, arg_allow_deep_reorg);
     command_line::add_arg(desc_cmd_sett, arg_rollback);
-    
-    command_line::add_arg(desc_cmd_sett, arg_allow_ipban);
 
     RpcServerConfig::initOptions(desc_cmd_sett);
     CoreConfig::initOptions(desc_cmd_sett);
@@ -204,13 +202,14 @@ int main(int argc, char* argv[])
 
     if (!r)
       return 1;
-  
+
     auto modulePath = Common::NativePathToGeneric(argv[0]);
     auto cfgLogFile = Common::NativePathToGeneric(command_line::get_arg(vm, arg_log_file));
 
     if (cfgLogFile.empty()) {
       cfgLogFile = Common::ReplaceExtenstion(modulePath, ".log");
-    } else {
+    }
+    else {
       if (!Common::HasParentPath(cfgLogFile)) {
         cfgLogFile = Common::CombinePath(Common::GetPathDirectory(modulePath), cfgLogFile);
       }
@@ -235,41 +234,6 @@ int main(int argc, char* argv[])
     std::string domain(VERSIOND_HOST);
     std::vector<std::string>records;
 
-    logger(Logging::INFO) << "Getting latest version info ...";
-
-    if (!Common::fetch_dns_txt(domain, records)) {
-      logger(Logging::INFO) << "Failed to get latest daemon version. Continuing without version check.";
-      }
-    else {
-        for (const auto& record : records) {
-          std::string latest_version = boost::replace_all_copy(record, ".", "");
-
-          std::stringstream ss;
-          ss << PROJECT_VERSION;
-          std::string lvs;
-          ss >> lvs;
-
-          std::string local_version = boost::replace_all_copy(lvs, ".", "");
-          
-          int local_version_int = std::stoi(local_version);
-          int latest_version_int = std::stoi(latest_version);   
-          
-          if(local_version_int >= latest_version_int) {
-            logger(INFO, GREEN) << "Great! You are using latest version " << lvs;
-            }
-          else {
-            std::cout << "\n";
-            logger(ERROR, BRIGHT_RED) << "Your daemon version is not up to date!";
-            logger(ERROR, BRIGHT_RED) << "Please download the latest version " << record << " from " << " https://github.com/pluracoin/PluraCoin/releases/latest";
-            std::cout << "\n";
-            logger(Logging::INFO) << "Shutting down";
-            std::cout << "\n";
-            return 0;
-          }
-
-        }
-    }
-
     bool testnet_mode = command_line::get_arg(vm, arg_testnet_on);
     if (testnet_mode) {
       logger(INFO) << "Starting in testnet mode!";
@@ -283,13 +247,9 @@ int main(int argc, char* argv[])
     MinerConfig minerConfig;
     minerConfig.init(vm);
     RpcServerConfig rpcConfig;
+    boost::filesystem::path data_dir_path(data_dir);
+    rpcConfig.setDataDir(data_dir_path.string());
     rpcConfig.init(vm);
-
-    std::string contact_str = rpcConfig.contactInfo;
-    if (!contact_str.empty() && contact_str.size() > 128) {
-      logger(ERROR, BRIGHT_RED) << "Too long contact info";
-      return 1;
-    }
 
 	std::cout <<	
 	"\n                                       \n"		
@@ -301,35 +261,40 @@ int main(int argc, char* argv[])
   "╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝\n" 
 	"                                         \n" << ENDL;
 
-    if ((rpcConfig.nodeFeeAddress.empty() && !rpcConfig.nodeFeeAmountStr.empty()) ||
-       (!rpcConfig.nodeFeeAddress.empty() && rpcConfig.nodeFeeAmountStr.empty())) {
-      logger(ERROR, BRIGHT_RED) << "Need to set both, fee-address and fee-amount";
-      return 1;
-    }
-
     //create objects and link them
     CryptoNote::CurrencyBuilder currencyBuilder(logManager);
     currencyBuilder.testnet(testnet_mode);
     try {
       currencyBuilder.currency();
-    } catch (std::exception&) {
+    }
+    catch (std::exception&) {
       std::cout << "GENESIS_COINBASE_TX_HEX constant has an incorrect value. Please launch: " << CryptoNote::CRYPTONOTE_NAME << "d --" << arg_print_genesis_tx.name;
       return 1;
     }
     CryptoNote::Currency currency = currencyBuilder.currency();
     System::Dispatcher dispatcher;
-    CryptoNote::Core m_core(currency, nullptr, logManager, dispatcher, vm["enable-blockchain-indexes"].as<bool>());
+    bool allow_reorg = command_line::get_arg(vm, arg_allow_deep_reorg);
+    if (allow_reorg) {
+      logger(WARNING) << "Deep reorg allowed!";
+    }
+
+    bool no_blobs = command_line::get_arg(vm, arg_no_blobs);
+    if (no_blobs) {
+      logger(INFO) << "Enabled full Proof of Work validation without hashing blobs cache";
+    }
+
+    CryptoNote::Core m_core(currency, nullptr, logManager, dispatcher, vm["enable-blockchain-indexes"].as<bool>(), allow_reorg, no_blobs);
 
     bool disable_checkpoints = command_line::get_arg(vm, arg_disable_checkpoints);
     if (!disable_checkpoints) {
-      CryptoNote::Checkpoints checkpoints(logManager);
+      CryptoNote::Checkpoints checkpoints(logManager, allow_reorg);
       for (const auto& cp : CryptoNote::CHECKPOINTS) {
         checkpoints.add_checkpoint(cp.height, cp.blockId);
       }
 
-//#ifndef __ANDROID__
+#ifndef __ANDROID__
       checkpoints.load_checkpoints_from_dns();
-//#endif
+#endif
 
       bool manual_checkpoints = !command_line::get_arg(vm, arg_load_checkpoints).empty();
 
@@ -351,7 +316,8 @@ int main(int argc, char* argv[])
       if (!Tools::directoryExists(coreConfig.configFolder)) {
         throw std::runtime_error("Directory does not exist: " + coreConfig.configFolder);
       }
-    } else {
+    }
+    else {
       if (!Tools::create_directories_if_necessary(coreConfig.configFolder)) {
         throw std::runtime_error("Can't create directory: " + coreConfig.configFolder);
       }
@@ -359,25 +325,11 @@ int main(int argc, char* argv[])
 
     CryptoNote::CryptoNoteProtocolHandler cprotocol(currency, dispatcher, m_core, nullptr, logManager);
     CryptoNote::NodeServer p2psrv(dispatcher, cprotocol, logManager);
-    CryptoNote::RpcServer rpcServer(dispatcher, logManager, m_core, p2psrv, cprotocol);
+    CryptoNote::RpcServer rpcServer(rpcConfig, dispatcher, logManager, m_core, p2psrv, cprotocol);
 
     cprotocol.set_p2p_endpoint(&p2psrv);
     m_core.set_cryptonote_protocol(&cprotocol);
     DaemonCommandsHandler dch(m_core, p2psrv, logManager, cprotocol, &rpcServer);
-
-    boost::filesystem::path data_dir_path(data_dir);
-    boost::filesystem::path chain_file_path(rpcConfig.getChainFile());
-    boost::filesystem::path key_file_path(rpcConfig.getKeyFile());
-    boost::filesystem::path dh_file_path(rpcConfig.getDhFile());
-    if (!chain_file_path.has_parent_path()) {
-      chain_file_path = data_dir_path / chain_file_path;
-    }
-    if (!key_file_path.has_parent_path()) {
-      key_file_path = data_dir_path / key_file_path;
-    }
-    if (!dh_file_path.has_parent_path()) {
-      dh_file_path = data_dir_path / dh_file_path;
-    }
 
     // initialize objects
     logger(INFO) << "Initializing p2p server...";
@@ -388,9 +340,8 @@ int main(int argc, char* argv[])
 
     logger(INFO) << "P2p server initialized OK";
 
-    //load IP ban list
-    p2psrv.load_banlist_from_dns();
-    
+
+    // initialize Core here
     logger(INFO) << "Initializing core...";
     if (!m_core.init(coreConfig, minerConfig, true)) {
       logger(ERROR, BRIGHT_RED) << "Failed to initialize core";
@@ -403,8 +354,8 @@ int main(int argc, char* argv[])
       if (!rollback_str.empty()) {
         uint32_t _index = 0;
         if (!Common::fromString(rollback_str, _index)) {
-          std::cout << "wrong block index parameter" << ENDL;
-          return false;
+          std::cout << "Wrong block index parameter for a rollback" << ENDL;
+          return 1;
         }
         m_core.rollbackBlockchain(_index);
       }
@@ -415,60 +366,25 @@ int main(int argc, char* argv[])
       dch.start_handling();
     }
 
-    bool server_ssl_enable = false;
-    if (rpcConfig.isEnabledSSL()) {
-      if (boost::filesystem::exists(chain_file_path, ec) &&
-        boost::filesystem::exists(key_file_path, ec) &&
-        boost::filesystem::exists(dh_file_path, ec)) {
-        rpcServer.setCerts(boost::filesystem::canonical(chain_file_path).string(),
-          boost::filesystem::canonical(key_file_path).string(),
-          boost::filesystem::canonical(dh_file_path).string());
-        server_ssl_enable = true;
-      }
-      else {
-        logger(ERROR, BRIGHT_RED) << "Start RPC SSL server was canceled because certificate file(s) could not be found" << std::endl;
-      }
-    }
     std::string ssl_info = "";
-    if (server_ssl_enable) ssl_info += ", SSL on address " + rpcConfig.getBindAddressSSL();
-    logger(INFO) << "Starting core rpc server on address " << rpcConfig.getBindAddress() << ssl_info;
-    rpcServer.start(rpcConfig.getBindIP(), rpcConfig.getBindPort(), rpcConfig.getBindPortSSL(), server_ssl_enable);
-    rpcServer.restrictRpc(rpcConfig.restrictedRPC);
-    rpcServer.enableCors(rpcConfig.enableCors);
-    if (!rpcConfig.nodeFeeAddress.empty() && !rpcConfig.nodeFeeAmountStr.empty()) {
-      AccountPublicAddress acc = boost::value_initialized<AccountPublicAddress>();
-      if (!currency.parseAccountAddressString(rpcConfig.nodeFeeAddress, acc)) {
-        logger(ERROR, BRIGHT_RED) << "Bad fee address: " << rpcConfig.nodeFeeAddress;
-        return 1;
-      }
-      rpcServer.setFeeAddress(rpcConfig.nodeFeeAddress, acc);
+    if (rpcConfig.isEnabledSSL()) ssl_info += ", SSL on address " + rpcConfig.getBindAddressSSL();
+    logger(INFO) << "Starting core RPC server on address " << rpcConfig.getBindAddress() << ssl_info;
 
-      uint64_t fee;
-      if (!Common::Format::parseAmount(rpcConfig.nodeFeeAmountStr, fee)) {
-        logger(ERROR, BRIGHT_RED) << "Couldn't parse fee amount";
-        return 1;
-      }
+    rpcServer.start();
 
-      if (fee > CryptoNote::parameters::MAXIMUM_MASTERNODE_FEE) {
-        logger(ERROR, BRIGHT_RED) << "Maximum allowed masternode fee is "
-          << Common::Format::formatAmount(CryptoNote::parameters::MAXIMUM_MASTERNODE_FEE);
-        return 1;
-      }
+    logger(INFO) << "Core RPC server started OK";
 
-      if(fee) {
-          logger(INFO) << "CEPS masternode fee set to " << rpcConfig.nodeFeeAmountStr << " PLURA";
-        }
-
-      rpcServer.setFeeAmount(fee);
-    }
-    
-    if (!rpcConfig.nodeFeeViewKey.empty()) {
-      rpcServer.setViewKey(rpcConfig.nodeFeeViewKey);
-    }
-    if (!rpcConfig.contactInfo.empty()) {
-      rpcServer.setContactInfo(rpcConfig.contactInfo);
-    }
-    logger(INFO) << "Core rpc server started ok";
+    std::cout << ENDL << "**********************************************************************" << ENDL
+      << "The daemon will start synchronizing with the network. It may take up to several hours." << ENDL
+      << ENDL
+      << "You can set the level of process detailization through \"set_log <level>\" command, "
+      << "where <level> is between 0 (no details) and 4 (very verbose)." << ENDL
+      << ENDL
+      << "Use \"help\" command to see the list of available commands." << ENDL
+      << ENDL
+      << "Note: in case you need to interrupt the process, use \"exit\" command. "
+      << "Otherwise, the current progress won't be saved." << ENDL
+      << "**********************************************************************" << ENDL;
 
     Tools::SignalHandler::install([&dch, &p2psrv] {
       dch.stop_handling();
@@ -482,7 +398,7 @@ int main(int argc, char* argv[])
     dch.stop_handling();
 
     //stop components
-    logger(INFO) << "Stopping core rpc server...";
+    logger(INFO) << "Stopping core RPC server...";
     rpcServer.stop();
 
     //deinitialize components

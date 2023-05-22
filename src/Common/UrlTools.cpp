@@ -47,7 +47,7 @@ bool parseUrlAddress(const std::string& url, std::string& host, uint16_t& port, 
       }
     } else {
       if (strcmp(reg_res.str(1).c_str(), "http://") == 0) port = HTTP_PORT;
-      else if (strcmp(reg_res.str(1).c_str(), "https://") == 0) port = HTTPS_PORT;      
+      else if (strcmp(reg_res.str(1).c_str(), "https://") == 0) port = HTTPS_PORT;
       else port = CryptoNote::RPC_DEFAULT_PORT;
     }
     if (port != 0) {

@@ -1,20 +1,20 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2016, The Forknote developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "TransactionPool.h"
 
@@ -248,6 +248,7 @@ namespace CryptoNote {
     removeTransaction(it);
     return true;
   }
+  //---------------------------------------------------------------------------------
   bool tx_memory_pool::getTransaction(const Crypto::Hash& id, Transaction& tx) {
     std::lock_guard<std::recursive_mutex> lock(m_transactions_lock);
     auto it = m_transactions.find(id);
@@ -407,7 +408,6 @@ namespace CryptoNote {
 
     total_size = 0;
     fee = 0;
-    int counter = 0;
 
     size_t max_total_size = (125 * median_size) / 100;
     max_total_size = std::min(max_total_size, maxCumulativeSize) - m_currency.minerTxBlobReservedSize();
@@ -415,8 +415,6 @@ namespace CryptoNote {
     BlockTemplate blockTemplate;
 
     for (auto i = m_fee_index.begin(); i != m_fee_index.end(); ++i) {
-      if (counter == 127)
-        break;
       const auto& txd = *i;
 
       size_t blockSizeLimit = (txd.fee == 0) ? median_size : max_total_size;
@@ -449,7 +447,6 @@ namespace CryptoNote {
       if (ready && blockTemplate.addTransaction(txd.id, txd.tx)) {
         total_size += txd.blobSize;
         fee += txd.fee;
-        ++counter;
         logger(DEBUGGING) << "Transaction " << txd.id << " included to block template";
       } else {
         logger(DEBUGGING) << "Transaction " << txd.id << " is failed to include to block template";

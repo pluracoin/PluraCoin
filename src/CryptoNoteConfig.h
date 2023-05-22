@@ -1,20 +1,20 @@
 // Copyright (c) 2012-2018, The CryptoNote developers, The Bytecoin developers, The Monero project, The Forknote developers, The Karbowanec developers
-// Copyright (c) 2018-2021, The Pluracoin developers
+// Copyright (c) 2018-2023, The Pluracoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -79,6 +79,7 @@ const size_t   DIFFICULTY_WINDOW_V2                          = 17; // blocks
 const size_t   DIFFICULTY_WINDOW_V3                          = 60 + 1; //blocks
 const size_t   DIFFICULTY_WINDOW_V4                          = 60 + 1; //blocks
 const size_t   DIFFICULTY_WINDOW_V5                          = 60; //blocks
+const size_t   DIFFICULTY_WINDOW_V6                          = 120; //blocks
 const size_t   DIFFICULTY_CUT                                = 60;  // timestamps to cut after sorting
 const size_t   DIFFICULTY_LAG                                = 15;  // !!!
 static_assert(2 * DIFFICULTY_CUT <= DIFFICULTY_WINDOW - 2, "Bad DIFFICULTY_WINDOW or DIFFICULTY_CUT");
@@ -104,12 +105,12 @@ const size_t   FUSION_TX_MIN_IN_OUT_COUNT_RATIO              = 4;
 
 const uint32_t UPGRADE_HEIGHT_V2                             = 1;
 const uint32_t UPGRADE_HEIGHT_V3                             = 2;
-const uint32_t UPGRADE_HEIGHT_V4                             = 20891;
+const uint32_t UPGRADE_HEIGHT_V4                             = 20890;
 const uint32_t UPGRADE_HEIGHT_V5                             = 161170;
-const uint32_t UPGRADE_HEIGHT_V6                             = 10000000;
+const uint32_t UPGRADE_HEIGHT_V6                             = 1400000;	//todo
+const uint32_t UPGRADE_HEIGHT_V7                             = 4294967295;
 
 const uint32_t DROP_MM_HEIGHT                                = 252000; //231500; //251300;
-const uint32_t BAN_CHECK_INTERVAL                            = 60;
 
 const unsigned UPGRADE_VOTING_THRESHOLD                      = 90; // percent
 const uint32_t UPGRADE_VOTING_WINDOW                         = EXPECTED_NUMBER_OF_BLOCKS_PER_DAY;  // blocks
@@ -127,6 +128,7 @@ const char     MINER_CONFIG_FILE_NAME[]                      = "miner_conf.json"
 } // parameters
 
 const char     CRYPTONOTE_NAME[]                             = "pluracoin";
+const char     CRYPTONOTE_TICKER[]                           = "PLURA";
 const char     GENESIS_COINBASE_TX_HEX[]                     = "010a01ff0001bda282a38eab04029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd088071210189788f801e9eb598528bc4a0f2e8dd213fb193df21e1b2d5c1522fc0b529c751";
 const char     DNS_CHECKPOINTS_HOST[]                        = "checkpoints.pluracoin.org";
 const char     VERSIOND_HOST[]                               = "versiond.pluracoin.org";
@@ -137,11 +139,12 @@ const uint8_t  BLOCK_MAJOR_VERSION_2                         =  2;
 const uint8_t  BLOCK_MAJOR_VERSION_3                         =  3;
 const uint8_t  BLOCK_MAJOR_VERSION_4                         =  4;
 const uint8_t  BLOCK_MAJOR_VERSION_5                         =  5;
+const uint8_t  BLOCK_MAJOR_VERSION_6                         =  6;
 const uint8_t  BLOCK_MINOR_VERSION_0                         =  0;
 const uint8_t  BLOCK_MINOR_VERSION_1                         =  1;
 
 const size_t   BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT        =  10000;  //by default, blocks ids count in synchronizing
-const size_t   BLOCKS_SYNCHRONIZING_DEFAULT_COUNT            =  128;    //by default, blocks count in blocks downloading
+const size_t   BLOCKS_SYNCHRONIZING_DEFAULT_COUNT            =  255;    //by default, blocks count in blocks downloading
 const size_t   COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT         =  1000;
 
 const int      P2P_DEFAULT_PORT                              =  19200;
@@ -153,7 +156,6 @@ const int      GATE_RPC_DEFAULT_PORT                         =  16000;
 const int      GATE_RPC_DEFAULT_SSL_PORT                     =  16100;
 const char     RPC_DEFAULT_CHAIN_FILE[]                      = "rpc_server.crt";
 const char     RPC_DEFAULT_KEY_FILE[]                        = "rpc_server.key";
-const char     RPC_DEFAULT_DH_FILE[]                         = "rpc_server.pem";
 
 const size_t   P2P_LOCAL_WHITE_PEERLIST_LIMIT                =  1000;
 const size_t   P2P_LOCAL_GRAY_PEERLIST_LIMIT                 =  5000;
@@ -201,15 +203,4 @@ const char* const SEED_NODES[] = {
     "s5.pluracoin.org:19200"    
     };
 
-/*struct CheckpointData {
-  uint32_t height;
-  const char* blockId;
-};*/
-	
-
-
 } // CryptoNote
-
-
-
-

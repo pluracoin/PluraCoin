@@ -137,7 +137,7 @@ bool AsyncConsoleReader::waitInput() {
 #else
   while (!m_stop.load(std::memory_order_relaxed))
   {
-    int retval = ::WaitForSingleObject(::GetStdHandle(STD_INPUT_HANDLE), 100);
+    DWORD retval = ::WaitForSingleObject(::GetStdHandle(STD_INPUT_HANDLE), 100);
     switch (retval)
     {
       case WAIT_FAILED:
@@ -188,7 +188,7 @@ void ConsoleHandler::unpause() {
 void ConsoleHandler::wait() {
 
   try {
-    if (m_thread.joinable()) {
+    if (m_thread.joinable() && m_thread.get_id() != std::this_thread::get_id()) {
       m_thread.join();
     }
   } catch (std::exception& e) {

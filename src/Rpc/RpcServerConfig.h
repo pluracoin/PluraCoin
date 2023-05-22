@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -28,29 +28,38 @@ public:
 
   static void initOptions(boost::program_options::options_description& desc);
   void init(const boost::program_options::variables_map& options);
+  void setDataDir(std::string dataDir);
 
   bool isEnabledSSL() const;
+  bool isRestricted() const;
   uint16_t getBindPort() const;
   uint16_t getBindPortSSL() const;
   std::string getBindIP() const;
   std::string getBindAddress() const;
   std::string getBindAddressSSL() const;
-  std::string getDhFile() const;
   std::string getChainFile() const;
   std::string getKeyFile() const;
+  std::string getCors() const;
+  std::string getNodeFeeAddress() const;
+  uint64_t    getNodeFeeAmount() const;
+  std::string getNodeFeeViewKey() const;
+  std::string getContactInfo() const;
+
+private:
+  std::string m_data_dir;
 
   bool        restrictedRPC;
   bool        enableSSL;
   uint16_t    bindPort;
   uint16_t    bindPortSSL;
   std::string bindIp;
-  std::string dhFile;
   std::string chainFile;
   std::string keyFile;
   std::string enableCors;
   std::string contactInfo;
   std::string nodeFeeAddress;
   std::string nodeFeeAmountStr;
+  uint64_t    nodeFeeAmount = 0;
   std::string nodeFeeViewKey;
 };
 

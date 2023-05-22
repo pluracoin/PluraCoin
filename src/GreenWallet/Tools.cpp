@@ -1,6 +1,6 @@
 // Copyright (c) 2018, The TurtleCoin Developers
 // Copyright (c) 2018-2019, The Karbo Developers
-// 
+//
 // Please see the included LICENSE file for more information.
 
 ////////////////////////////
@@ -10,6 +10,8 @@
 #include <boost/algorithm/string.hpp>
 
 #include <cmath>
+#include <chrono>
+#include <thread>
 
 #include <Common/Base58.h>
 #include <Common/StringTools.h>
@@ -23,6 +25,7 @@
 #include <Common/ColouredMsg.h>
 #include <Common/PasswordContainer.h>
 #include <GreenWallet/WalletConfig.h>
+#define _GLIBCXX_USE_NANOSLEEP 1
 
 void confirmPassword(std::string walletPass, std::string msg)
 {
@@ -279,7 +282,7 @@ bool shutdown(std::shared_ptr<WalletInfo> walletInfo, CryptoNote::INode &node,
 {
     if (alreadyShuttingDown)
     {
-        std::cout << "Patience please, we're already shutting down!" 
+        std::cout << "Patience please, we're already shutting down!"
                   << std::endl;
 
         return false;
@@ -336,6 +339,6 @@ bool shutdown(std::shared_ptr<WalletInfo> walletInfo, CryptoNote::INode &node,
     timelyShutdown.join();
 
     std::cout << "Bye." << std::endl;
-    
+
     return true;
 }

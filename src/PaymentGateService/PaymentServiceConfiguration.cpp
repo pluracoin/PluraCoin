@@ -2,20 +2,20 @@
 // Copyright(c) 2014 - 2017 XDN - project developers
 // Copyright(c) 2018 The Karbo developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "PaymentServiceConfiguration.h"
 
@@ -55,7 +55,6 @@ Configuration::Configuration() {
   m_enable_ssl = false;
   m_chain_file = "";
   m_key_file = "";
-  m_dh_file = "";
   scanHeight = 0;
 }
 
@@ -69,7 +68,6 @@ void Configuration::initOptions(po::options_description& desc) {
       ("rpc-ssl-enable", po::bool_switch(), "Enable SSL for RPC service")
       ("rpc-chain-file", po::value<std::string>()->default_value(std::string(CryptoNote::RPC_DEFAULT_CHAIN_FILE)), "SSL chain file")
       ("rpc-key-file", po::value<std::string>()->default_value(std::string(CryptoNote::RPC_DEFAULT_KEY_FILE)), "SSL key file")
-      ("rpc-dh-file", po::value<std::string>()->default_value(std::string(CryptoNote::RPC_DEFAULT_DH_FILE)), "SSL DH file")
       ("container-file,w", po::value<std::string>(), "container file")
       ("container-password,p", po::value<std::string>(), "container password")
       ("change-password", po::value<std::string>(), "change container password and exit")
@@ -160,10 +158,6 @@ void Configuration::init(const po::variables_map& options) {
 
   if (options.count("rpc-key-file") != 0 && (!options["rpc-key-file"].defaulted() || m_key_file.empty())) {
     m_key_file = options["rpc-key-file"].as<std::string>();
-  }
-
-  if (options.count("rpc-dh-file") != 0 && (!options["rpc-dh-file"].defaulted() || m_dh_file.empty())) {
-    m_dh_file = options["rpc-dh-file"].as<std::string>();
   }
 
   if (options.count("container-file") != 0) {

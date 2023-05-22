@@ -3,20 +3,20 @@
 // Copyright (c) 2014-2018, The Forknote developers
 // Copyright (c) 2016-2018, The Karbowanec developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -72,6 +72,7 @@ private:
   bool print_cn(const std::vector<std::string>& args);
   bool print_bc(const std::vector<std::string>& args);
   bool print_bci(const std::vector<std::string>& args);
+  bool print_dand(const std::vector<std::string>& args);
   bool print_height(const std::vector<std::string>& args);
   bool set_log(const std::vector<std::string>& args);
   bool print_block(const std::vector<std::string>& args);

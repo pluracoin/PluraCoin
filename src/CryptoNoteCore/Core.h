@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -45,7 +45,7 @@ namespace CryptoNote {
 
   class Core : public ICore, public IMinerHandler, public IBlockchainStorageObserver, public ITxPoolObserver {
    public:
-     Core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogger& logger, System::Dispatcher& dispatcher, bool blockchainIndexesEnabled);
+     Core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogger& logger, System::Dispatcher& dispatcher, bool blockchainIndexesEnabled, bool allowDeepReorg = false, bool noBlobs = false);
      ~Core();
 
      bool on_idle() override;
@@ -57,7 +57,8 @@ namespace CryptoNote {
 
      //-------------------- IMinerHandler -----------------------
      virtual bool handle_block_found(Block& b) override;
-     virtual bool get_block_template(Block& b, const AccountPublicAddress& adr, difficulty_type& diffic, uint32_t& height, const BinaryArray& ex_nonce) override;
+     virtual bool get_block_template(Block& b, const AccountKeys& acc, difficulty_type& diffic, uint32_t& height, const BinaryArray& ex_nonce) override;
+     virtual bool getBlockLongHash(Crypto::cn_context &context, const Block& b, Crypto::Hash& res) override;
 
      bool addObserver(ICoreObserver* observer) override;
      bool removeObserver(ICoreObserver* observer) override;
@@ -152,8 +153,7 @@ namespace CryptoNote {
 
      virtual bool get_tx_outputs_gindexs(const Crypto::Hash& tx_id, std::vector<uint32_t>& indexs) override;
      Crypto::Hash get_tail_id();
-     virtual bool get_random_outs_for_amounts(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_response& res) override;
-     virtual bool get_random_outs_for_amounts2(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2_response& res);
+     virtual bool get_random_outs_for_amounts(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS_response& res) override;     
      void pause_mining() override;
      void update_block_template_and_resume_mining() override;
      Blockchain& get_blockchain_storage(){return m_blockchain;}
@@ -221,7 +221,6 @@ namespace CryptoNote {
      std::string m_config_folder;
      cryptonote_protocol_stub m_protocol_stub;
      friend class tx_validate_inputs;
-     std::atomic<bool> m_starter_message_showed;
      Tools::ObserverManager<ICoreObserver> m_observerManager;
      time_t start_time;
    };

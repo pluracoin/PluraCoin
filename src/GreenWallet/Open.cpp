@@ -11,9 +11,11 @@
 #include <boost/filesystem.hpp>
 
 #include <Common/Base58.h>
+#include <Common/StringTools.h>
 
 #include <CryptoNoteCore/Account.h>
 #include <CryptoNoteCore/CryptoNoteBasicImpl.h>
+#include <CryptoNoteCore/CryptoNoteTools.h>
 
 #include <Mnemonics/electrum-words.h>
 
@@ -41,7 +43,7 @@ std::shared_ptr<WalletInfo> createViewWallet(CryptoNote::WalletGreen &wallet)
     {
         return nullptr;
     }
-    
+
     Crypto::SecretKey privateViewKey = getPrivateKey("Private View Key: ");
 
     std::string address;
@@ -76,7 +78,7 @@ std::shared_ptr<WalletInfo> createViewWallet(CryptoNote::WalletGreen &wallet)
 
     viewWalletMsg();
 
-    return std::make_shared<WalletInfo>(walletFileName, walletPass, 
+    return std::make_shared<WalletInfo>(walletFileName, walletPass,
                                         address, true, wallet);
 }
 
@@ -127,7 +129,7 @@ std::shared_ptr<WalletInfo> importGUIWallet(CryptoNote::WalletGreen &wallet)
             continue;
         }
 
-        if (addressPrefix != 
+        if (addressPrefix !=
             CryptoNote::parameters::CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX)
         {
             std::cout << WarningMsg("Invalid GUI Private Key, it should begin ")
@@ -142,8 +144,9 @@ std::shared_ptr<WalletInfo> importGUIWallet(CryptoNote::WalletGreen &wallet)
         break;
     }
 
-    /* Copy the keys into the struct */
-    std::memcpy(&keys, data.data(), sizeof(keys));
+    if (!fromBinaryArray(keys, Common::asBinaryArray(data))) {
+        std::cout << WarningMsg("Failed to parse account keys") << std::endl;
+    }
 
     return importFromKeys(wallet, keys.spendSecretKey, keys.viewSecretKey);
 }
@@ -168,14 +171,14 @@ std::shared_ptr<WalletInfo> mnemonicImportWallet(CryptoNote::WalletGreen
                                                      privateSpendKey,
                                                      std::cout));
 
-    CryptoNote::AccountBase::generateViewFromSpend(privateSpendKey, 
+    CryptoNote::AccountBase::generateViewFromSpend(privateSpendKey,
                                                    privateViewKey);
 
     return importFromKeys(wallet, privateSpendKey, privateViewKey);
 }
 
 std::shared_ptr<WalletInfo> importFromKeys(CryptoNote::WalletGreen &wallet,
-                                           Crypto::SecretKey privateSpendKey, 
+                                           Crypto::SecretKey privateSpendKey,
                                            Crypto::SecretKey privateViewKey)
 {
     const std::string walletFileName = getNewWalletFileName();
@@ -195,7 +198,7 @@ std::shared_ptr<WalletInfo> importFromKeys(CryptoNote::WalletGreen &wallet,
               << InformationMsg(" has been successfully imported!")
               << std::endl << std::endl;
 
-    return std::make_shared<WalletInfo>(walletFileName, walletPass, 
+    return std::make_shared<WalletInfo>(walletFileName, walletPass,
                                         walletAddress, false, wallet);
 }
 
@@ -263,7 +266,7 @@ std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
 			wallet.load(walletFileName, walletPass);
 
             const std::string walletAddress = wallet.getAddress(0);
-            
+
             const Crypto::SecretKey privateSpendKey
                 = wallet.getAddressSpendKey(0).secretKey;
 
@@ -304,7 +307,7 @@ std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
             {
                 case CryptoNote::error::WRONG_PASSWORD:
                 {
-                    std::cout << std::endl 
+                    std::cout << std::endl
                               << WarningMsg("Incorrect password! Try again.")
                               << std::endl << std::endl;
 
@@ -340,7 +343,7 @@ std::shared_ptr<WalletInfo> openWallet(CryptoNote::WalletGreen &wallet,
                 "because it is being used by another process.";
 
             const std::string errorMsg = e.what();
-                
+
             /* The message actually has a \r\n on the end but i'd prefer to
                keep just the raw string in the source so check the it starts
                with instead */
@@ -401,7 +404,7 @@ Crypto::SecretKey getPrivateKey(std::string msg)
 
             continue;
         }
-        else if (!Common::fromHex(privateKeyString, &privateKeyHash, 
+        else if (!Common::fromHex(privateKeyString, &privateKeyHash,
                   sizeof(privateKeyHash), size)
                || size != sizeof(privateKeyHash))
         {
@@ -553,7 +556,7 @@ void promptSaveKeys(CryptoNote::WalletGreen &wallet)
 {
     std::cout << "Welcome to your new wallet, here is your payment address:"
               << std::endl << InformationMsg(wallet.getAddress(0))
-              << std::endl << std::endl 
+              << std::endl << std::endl
               << "Please copy your secret keys and mnemonic seed and store "
               << "them in a secure location: " << std::endl;
 

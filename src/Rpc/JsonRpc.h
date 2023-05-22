@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -22,7 +22,10 @@
 #include <functional>
 
 #include "CoreRpcServerCommandsDefinitions.h"
-#include <Common/JsonValue.h>
+#include "Common/JsonValue.h"
+#include "Common/base64.hpp"
+#include "Common/StringTools.h"
+#include "HTTP/httplib.h"
 #include "Serialization/ISerializer.h"
 #include "Serialization/SerializationTools.h"
 
@@ -185,10 +188,10 @@ private:
 };
 
 
-void invokeJsonRpcCommand(HttpClient& httpClient, JsonRpcRequest& req, JsonRpcResponse& res, const std::string& user = "", const std::string& password = "");
+void invokeJsonRpcCommand(httplib::Client& httpClient, JsonRpcRequest& req, JsonRpcResponse& res, const std::string& user = "", const std::string& password = "");
 
 template <typename Request, typename Response>
-void invokeJsonRpcCommand(HttpClient& httpClient, const std::string& method, const Request& req, Response& res, const std::string& user = "", const std::string& password = "") {
+void invokeJsonRpcCommand(httplib::Client& httpClient, const std::string& method, const Request& req, Response& res, const std::string& user = "", const std::string& password = "") {
   JsonRpcRequest jsReq;
   JsonRpcResponse jsRes;
 
@@ -198,6 +201,27 @@ void invokeJsonRpcCommand(HttpClient& httpClient, const std::string& method, con
   invokeJsonRpcCommand(httpClient, jsReq, jsRes, user, password);
 
   jsRes.getResult(res);
+}
+
+template <typename Request, typename Response>
+void invokeJsonCommand(httplib::Client& client, const std::string& url, const Request& req, Response& res, const std::string& user = "", const std::string& password = "") {
+  httplib::Request hreq;
+  httplib::Response hres;
+
+
+  if (!user.empty() || !password.empty()) {
+    client.set_basic_auth(user.c_str(), password.c_str());
+  }
+
+  auto rsp = client.Post(url.c_str(), storeToJson(req), "application/json");
+
+  if (!rsp || rsp->status != 200) {
+    throw std::runtime_error("JSON-RPC call failed");
+  }
+
+  if (!loadFromJson(res, rsp->body)) {
+    throw std::runtime_error("Failed to parse JSON response");
+  }
 }
 
 template <typename Request, typename Response, typename Handler>

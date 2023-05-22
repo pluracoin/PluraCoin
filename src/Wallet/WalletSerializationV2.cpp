@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "WalletSerializationV2.h"
 
@@ -178,7 +178,7 @@ void WalletSerializerV2::save(Common::IOutputStream& destination, WalletSaveLeve
   uint8_t saveLevelValue = static_cast<uint8_t>(saveLevel);
   s(saveLevelValue, "saveLevel");
 
-  saveKeyListAndBanalces(s, saveLevel == WalletSaveLevel::SAVE_ALL);
+  saveKeyListAndBalances(s, saveLevel == WalletSaveLevel::SAVE_ALL);
 
   if (saveLevel == WalletSaveLevel::SAVE_KEYS_AND_TRANSACTIONS || saveLevel == WalletSaveLevel::SAVE_ALL) {
     saveTransactions(s);
@@ -246,7 +246,7 @@ void WalletSerializerV2::loadKeyListAndBalances(CryptoNote::ISerializer& seriali
   }
 }
 
-void WalletSerializerV2::saveKeyListAndBanalces(CryptoNote::ISerializer& serializer, bool saveCache) {
+void WalletSerializerV2::saveKeyListAndBalances(CryptoNote::ISerializer& serializer, bool saveCache) {
   auto walletCount = m_walletsContainer.get<RandomAccessIndex>().size();
   serializer(walletCount, "walletCount");
   for (auto wallet : m_walletsContainer.get<RandomAccessIndex>()) {

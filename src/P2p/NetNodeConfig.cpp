@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "NetNodeConfig.h"
 
@@ -61,6 +61,7 @@ void NetNodeConfig::initOptions(boost::program_options::options_description& des
   command_line::add_arg(desc, arg_p2p_seed_node);
   command_line::add_arg(desc, arg_ban_list);
   command_line::add_arg(desc, arg_p2p_hide_my_port);
+  command_line::add_arg(desc, arg_connections_count);
 }
 
 NetNodeConfig::NetNodeConfig() {
@@ -71,6 +72,7 @@ NetNodeConfig::NetNodeConfig() {
   hideMyPort = false;
   configFolder = Tools::getDefaultDataDirectory();
   testnet = false;
+  connectionsCount = CryptoNote::P2P_DEFAULT_CONNECTIONS_COUNT;
 }
 
 bool NetNodeConfig::init(const boost::program_options::variables_map& vm)
@@ -147,6 +149,9 @@ bool NetNodeConfig::init(const boost::program_options::variables_map& vm)
       banList.push_back(parsed_addr);
     }
   }
+  if (command_line::has_arg(vm, CryptoNote::arg_connections_count)) {
+    connectionsCount = command_line::get_arg(vm, arg_connections_count);
+  }
   return true;
 }
 
@@ -210,6 +215,10 @@ std::string NetNodeConfig::getConfigFolder() const {
   return configFolder;
 }
 
+uint32_t NetNodeConfig::getConnectionsCount() const {
+  return connectionsCount;
+}
+
 void NetNodeConfig::setP2pStateFilename(const std::string& filename) {
   p2pStateFilename = filename;
 }
@@ -254,5 +263,8 @@ void NetNodeConfig::setConfigFolder(const std::string& folder) {
   configFolder = folder;
 }
 
+void NetNodeConfig::setConnectionsCount(uint32_t count) {
+  connectionsCount = count;
+}
 
 } //namespace nodetool

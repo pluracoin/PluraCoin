@@ -1,20 +1,20 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2016-2018, The Karbowanec developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "StringTools.h"
 #include <fstream>
@@ -360,11 +360,11 @@ std::string timeIntervalToString(uint64_t intervalInSeconds) {
   auto seconds = tail;
 
   std::stringstream ss;
-  ss << "d" << days <<
-    std::setfill('0') <<
-    ".h" << std::setw(2) << hours <<
-    ".m" << std::setw(2) << minutes <<
-    ".s" << std::setw(2) << seconds;
+  ss << std::setfill('0')
+     << std::setw(2) << days << "d "
+     << std::setw(2) << hours << "h "
+     << std::setw(2) << minutes << "m "
+     << std::setw(2) << seconds << "s";
 
   return ss.str();
 }

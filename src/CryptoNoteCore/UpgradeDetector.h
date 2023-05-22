@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -28,6 +28,7 @@
 #include "CryptoNoteConfig.h"
 #include <Logging/LoggerRef.h>
 
+#undef ERROR
 namespace CryptoNote {
   class UpgradeDetectorBase {
   public:
@@ -83,15 +84,12 @@ namespace CryptoNote {
             return false;
           }
         } else {
-          int blockVersionAtUpgradeHeight = m_blockchain[upgradeHeight].bl.majorVersion;                      
+          int blockVersionAtUpgradeHeight = m_blockchain[upgradeHeight].bl.majorVersion;
           if (blockVersionAtUpgradeHeight != m_targetVersion - 1) {
-                //emergency fix for height 20891
-              if(upgradeHeight!=CryptoNote::parameters::UPGRADE_HEIGHT_V4) {
-                logger(Logging::ERROR, Logging::BRIGHT_RED) << "Internal error: block at height " << upgradeHeight <<
-                  " has invalid version " << blockVersionAtUpgradeHeight <<
-                  ", expected " << static_cast<int>(m_targetVersion - 1);
-                return false;
-              } //fix end
+            logger(Logging::ERROR, Logging::BRIGHT_RED) << "Internal error: block at height " << upgradeHeight <<
+              " has invalid version " << blockVersionAtUpgradeHeight <<
+              ", expected " << static_cast<int>(m_targetVersion - 1);
+            return false;
 
           }
 

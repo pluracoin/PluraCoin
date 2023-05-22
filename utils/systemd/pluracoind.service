@@ -1,0 +1,17 @@
+[Unit]
+Description=PluraCoin PLURA service
+After=network.target
+
+[Service]
+Type=oneshot
+User=pluracoin
+Group=pluracoin
+PermissionsStartOnly=true
+RemainAfterExit=yes
+ExecStartPre=-/bin/mkdir -p /var/run/pluracoin
+ExecStartPre=/bin/chown -R pluracoin:pluracoin /var/run/pluracoin/
+ExecStart=/usr/lib/pluracoin/pluracoind.sh --start
+ExecStop=/usr/lib/pluracoin/pluracoind.sh --stop
+
+[Install]
+WantedBy=multi-user.target

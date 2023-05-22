@@ -41,18 +41,22 @@
 #include "IWalletLegacy.h"
 #include "Common/PasswordContainer.h"
 
+#include "HTTP/httplib.h"
 #include "Common/ConsoleHandler.h"
 #include "CryptoNoteCore/CryptoNoteBasicImpl.h"
 #include "CryptoNoteCore/Currency.h"
 #include "NodeRpcProxy/NodeRpcProxy.h"
 #include "WalletLegacy/WalletHelper.h"
 #include "WalletLegacy/WalletLegacy.h"
+#include "Logging/LoggerRef.h"
+#include "Logging/LoggerManager.h"
+#include "System/Dispatcher.h"
+#include "System/Event.h"
+#include "System/RemoteContext.h"
+#include "System/Ipv4Address.h"
 
-#include <Logging/LoggerRef.h>
-#include <Logging/LoggerManager.h>
-
-#include <System/Dispatcher.h>
-#include <System/Ipv4Address.h>
+using namespace Logging;
+#undef ERROR
 
 namespace{
 	Tools::PasswordContainer pwd_container;
@@ -91,20 +95,20 @@ namespace CryptoNote
 
     void handle_command_line(const boost::program_options::variables_map& vm);
 
-    bool new_wallet(const std::string &wallet_file, const std::string& password);
+    bool new_wallet(const std::string &wallet_file, const std::string& password, bool two_random = false); // Create deterministic wallets by default
     bool new_wallet(const std::string &wallet_file, const std::string& password, const Crypto::SecretKey& spend_secret_key, const Crypto::SecretKey& view_secret_key);
     bool new_wallet(const std::string &wallet_file, const std::string& password, const AccountKeys& private_keys);
     bool new_tracking_wallet(AccountKeys &tracking_key, const std::string &wallet_file, const std::string& password);
     bool close_wallet();
 
     bool help(const std::vector<std::string> &args = std::vector<std::string>());
-    bool seed(const std::vector<std::string> &args = std::vector<std::string>());
     bool exit(const std::vector<std::string> &args);
     bool start_mining(const std::vector<std::string> &args);
     bool stop_mining(const std::vector<std::string> &args);
     bool show_balance(const std::vector<std::string> &args = std::vector<std::string>());
-    bool export_keys(const std::vector<std::string> &args = std::vector<std::string>());
-    bool export_tracking_key(const std::vector<std::string> &args = std::vector<std::string>());
+    bool show_keys(const std::vector<std::string> &args = std::vector<std::string>());
+    bool export_keys_to_file(const std::vector<std::string>& args = std::vector<std::string>());
+    bool show_tracking_key(const std::vector<std::string> &args = std::vector<std::string>());
     bool show_incoming_transfers(const std::vector<std::string> &args);
     bool show_outgoing_transfers(const std::vector<std::string> &args);
     bool show_payments(const std::vector<std::string> &args);
@@ -114,6 +118,7 @@ namespace CryptoNote
     bool transfer(const std::vector<std::string> &args);
     bool prepare_tx(const std::vector<std::string>& args);
     bool print_address(const std::vector<std::string> &args = std::vector<std::string>());
+    bool save_address_to_file(const std::vector<std::string> &args = std::vector<std::string>());
     bool save(const std::vector<std::string> &args);
     bool reset(const std::vector<std::string> &args);
     bool set_log(const std::vector<std::string> &args);
@@ -127,6 +132,7 @@ namespace CryptoNote
     bool sign_message(const std::vector<std::string> &args);
     bool verify_message(const std::vector<std::string> &args);
 
+    std::string get_formatted_wallet_keys();
     void printConnectionError() const;
 
     //---------------- IWalletLegacyObserver -------------------------
@@ -195,15 +201,20 @@ namespace CryptoNote
     std::string m_daemon_path;
     std::string m_daemon_cert;
     std::string m_mnemonic_seed;
+    std::string m_mnemonic_seed_file;
     std::string m_view_key;
     std::string m_spend_key;
     std::string m_wallet_file;
     uint16_t m_daemon_port;
     uint32_t m_scan_height;
+    bool m_restore_wallet;                // recover flag
+    bool m_non_deterministic;             // old 2-random generation
     bool m_daemon_ssl;
     bool m_daemon_no_verify;
 
     bool m_do_not_relay_tx;
+    bool m_dump_keys_file;
+    bool m_initial_remote_fee_mess;
     
     std::unique_ptr<std::promise<std::error_code>> m_initResultPromise;
 
@@ -216,6 +227,7 @@ namespace CryptoNote
     std::unique_ptr<CryptoNote::NodeRpcProxy> m_node;
     std::unique_ptr<CryptoNote::IWalletLegacy> m_wallet;
     refresh_progress_reporter_t m_refresh_progress_reporter;
+    httplib::Headers m_requestHeaders;
 
     bool m_walletSynchronized;
     bool m_trackingWallet;

@@ -1,20 +1,20 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "BlockchainExplorerDataBuilder.h"
 
@@ -23,6 +23,7 @@
 
 #include "Common/StringTools.h"
 #include "CryptoNoteCore/CryptoNoteFormatUtils.h"
+#include "CryptoNoteCore/CryptoNoteBasicImpl.h"
 #include "CryptoNoteCore/CryptoNoteTools.h"
 #include "CryptoNoteCore/TransactionExtra.h"
 #include "CryptoNoteConfig.h"
@@ -117,7 +118,7 @@ bool BlockchainExplorerDataBuilder::fillBlockDetails(const Block &block, BlockDe
   blockDetails.proofOfWork = boost::value_initialized<Crypto::Hash>();
   if (calculate_pow) {
     Crypto::cn_context context;
-    if (!get_block_longhash(context, block, blockDetails.proofOfWork)) {
+    if (!m_core.getBlockLongHash(context, block, blockDetails.proofOfWork)) {
       return false;
     }
   }
@@ -185,6 +186,11 @@ bool BlockchainExplorerDataBuilder::fillBlockDetails(const Block &block, BlockDe
     blockDetails.penalty = static_cast<double>(maxReward - currentReward) / static_cast<double>(maxReward);
   }
 
+//todo
+  blockDetails.minerSignature = boost::value_initialized<Crypto::Signature>();
+  if (block.majorVersion >= BLOCK_MAJOR_VERSION_6) {
+    blockDetails.minerSignature = block.signature;
+  }
 
   blockDetails.transactions.reserve(block.transactionHashes.size() + 1);
   TransactionDetails transactionDetails;
@@ -266,8 +272,10 @@ bool BlockchainExplorerDataBuilder::fillTransactionDetails(const Transaction& tr
   Crypto::Hash paymentId;
   if (getPaymentId(transaction, paymentId)) {
     transactionDetails.paymentId = paymentId;
+    transactionDetails.hasPaymentId = true;
   } else {
     transactionDetails.paymentId = boost::value_initialized<Crypto::Hash>();
+    transactionDetails.hasPaymentId = false;
   }
   fillTxExtra(transaction.extra, transactionDetails.extra);
   transactionDetails.signatures.reserve(transaction.signatures.size());

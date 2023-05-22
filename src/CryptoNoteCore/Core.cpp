@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers, The Karbowanec developers, The Pluracoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "Core.h"
 
@@ -68,15 +68,14 @@ private:
   friend class Core;
 };
 
-Core::Core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogger& logger, System::Dispatcher& dispatcher, bool blockchainIndexesEnabled) :
+Core::Core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogger& logger, System::Dispatcher& dispatcher, bool blockchainIndexesEnabled, bool allowDeepReorg, bool noBlobs) :
   m_dispatcher(dispatcher),
   m_currency(currency),
   logger(logger, "Core"),
   m_mempool(currency, m_blockchain, *this, m_timeProvider, logger, blockchainIndexesEnabled),
-  m_blockchain(currency, m_mempool, logger, blockchainIndexesEnabled),
+  m_blockchain(currency, m_mempool, logger, blockchainIndexesEnabled, allowDeepReorg, noBlobs),
   m_miner(new miner(currency, *this, logger)),
-  m_starter_message_showed(false),
-  m_checkpoints(logger) {
+  m_checkpoints(logger, allowDeepReorg) {
     set_cryptonote_protocol(pprotocol);
     m_blockchain.addObserver(this);
     m_mempool.addObserver(this);
@@ -486,7 +485,7 @@ bool Core::add_new_tx(const Transaction& tx, const Crypto::Hash& tx_hash, size_t
   return m_mempool.add_tx(tx, tx_hash, blob_size, tvc, keeped_by_block);
 }
 
-bool Core::get_block_template(Block& b, const AccountPublicAddress& adr, difficulty_type& diffic, uint32_t& height, const BinaryArray& ex_nonce) {
+bool Core::get_block_template(Block& b, const AccountKeys& acc, difficulty_type& diffic, uint32_t& height, const BinaryArray& ex_nonce) {
   size_t median_size;
   uint64_t already_generated_coins;
 
@@ -495,9 +494,13 @@ bool Core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
     height = m_blockchain.getCurrentBlockchainHeight();
     b = boost::value_initialized<Block>();
     b.majorVersion = m_blockchain.getBlockMajorVersionForHeight(height);
+    logger(ERROR, BRIGHT_RED) << "b.majorversion" << b.majorVersion;
     b.previousBlockHash = get_tail_id();
-    b.timestamp = time(NULL);
+    logger(ERROR, BRIGHT_RED) << "b.previousblockchash" << b.previousBlockHash;
+    b.timestamp = time(nullptr);
+    logger(ERROR, BRIGHT_RED) << "b.timestamp" << b.timestamp;
     diffic = m_blockchain.getDifficultyForNextBlock(b.previousBlockHash);
+    logger(ERROR, BRIGHT_RED) << "diffic" << diffic;
     if (!(diffic)) {
       logger(ERROR, BRIGHT_RED) << "difficulty overhead.";
       return false;
@@ -551,12 +554,13 @@ bool Core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
     return false;
   }
 
+  Crypto::SecretKey tx_key;
   /*
      two-phase miner transaction generation: we don't know exact block size until we prepare block, but we don't know reward until we know
      block size, so first miner transaction generated with fake amount of money, and with phase we know think we know expected block size
      */
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob size
-  bool r = m_currency.constructMinerTx(b.majorVersion, height, median_size, already_generated_coins, txs_size, fee, adr, b.baseTransaction, ex_nonce, 14);
+  bool r = m_currency.constructMinerTx(b.majorVersion, height, median_size, already_generated_coins, txs_size, fee, acc.address, b.baseTransaction, tx_key, ex_nonce, b.majorVersion >= BLOCK_MAJOR_VERSION_5 ? 1 : 14);
   if (!r) { 
     logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, first chance"; 
     return false; 
@@ -564,7 +568,7 @@ bool Core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
 
   size_t cumulative_size = txs_size + getObjectBinarySize(b.baseTransaction);
   for (size_t try_count = 0; try_count != 10; ++try_count) {
-    r = m_currency.constructMinerTx(b.majorVersion, height, median_size, already_generated_coins, cumulative_size, fee, adr, b.baseTransaction, ex_nonce, 14);
+    r = m_currency.constructMinerTx(b.majorVersion, height, median_size, already_generated_coins, cumulative_size, fee, acc.address, b.baseTransaction, tx_key, ex_nonce, b.majorVersion >= BLOCK_MAJOR_VERSION_5 ? 1 : 14);
 
     if (!(r)) { logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, second chance"; return false; }
     size_t coinbase_blob_size = getObjectBinarySize(b.baseTransaction);
@@ -624,10 +628,6 @@ void Core::print_blockchain_outs(const std::string& file) {
 
 bool Core::get_random_outs_for_amounts(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS::response& res) {
   return m_blockchain.getRandomOutsByAmount(req, res);
-}
-
-bool Core::get_random_outs_for_amounts2(const COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::request& req, COMMAND_RPC_GET_RANDOM_OUTPUTS_FOR_AMOUNTS2::response& res) {
-  return m_blockchain.getRandomOutsByAmount2(req, res);
 }
 
 bool Core::get_tx_outputs_gindexs(const Crypto::Hash& tx_id, std::vector<uint32_t>& indexs) {
@@ -848,6 +848,9 @@ bool Core::getBlockHeight(const Crypto::Hash& blockId, uint32_t& blockHeight) {
   return m_blockchain.getBlockHeight(blockId, blockHeight);
 }
 
+bool Core::getBlockLongHash(Crypto::cn_context &context, const Block& b, Crypto::Hash& res) {
+  return m_blockchain.getBlockLongHash(context, b, res);
+}
 //void Core::get_all_known_block_ids(std::list<Crypto::Hash> &main, std::list<Crypto::Hash> &alt, std::list<Crypto::Hash> &invalid) {
 //  m_blockchain.get_all_known_block_ids(main, alt, invalid);
 //}
@@ -861,19 +864,6 @@ bool Core::update_miner_block_template() {
 }
 
 bool Core::on_idle() {
-  if (!m_starter_message_showed) {
-    std::cout << ENDL << "**********************************************************************" << ENDL
-      << "The daemon will start synchronizing with the network. It may take up to several hours." << ENDL
-      << ENDL
-      << "You can set the level of process detailization* through \"set_log <level>\" command*, where <level> is between 0 (no details) and 4 (very verbose)." << ENDL
-      << ENDL
-      << "Use \"help\" command to see the list of available commands." << ENDL
-      << ENDL
-      << "Note: in case you need to interrupt the process, use \"exit\" command. Otherwise, the current progress won't be saved." << ENDL
-      << "**********************************************************************" << ENDL << ENDL;
-    m_starter_message_showed = true;
-  }
-
   m_miner->on_idle();
   m_mempool.on_idle();
   return true;
@@ -1030,6 +1020,8 @@ bool Core::queryBlocksLite(const std::vector<Crypto::Hash>& knownBlockIds, uint6
       std::list<Transaction> txs;
       std::list<Crypto::Hash> missedTxs;
       lbs->getTransactions(b.transactionHashes, txs, missedTxs);
+      b.majorVersion = BLOCK_MAJOR_VERSION_5; // Workaround backward compatible with old wallets, i.e. serialize without signature
+	// todo check
 
       item.block = asString(toBinaryArray(b));
 
@@ -1318,7 +1310,7 @@ std::unique_ptr<IBlock> Core::getBlock(const Crypto::Hash& blockId) {
     return std::unique_ptr<BlockWithTransactions>(nullptr);
   }
 
-  return std::move(blockPtr);
+  return blockPtr;
 }
 
 bool Core::getMixin(const Transaction& transaction, uint64_t& mixin) {

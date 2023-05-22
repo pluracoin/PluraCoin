@@ -28,7 +28,6 @@
 #include <sstream>
 #include <vector>
 #include <iterator>
-#include <mutex>
 #include <chrono>
 #include <thread>
 #include <future>
@@ -39,10 +38,12 @@
 #include "Common/DnsTools.h"
 
 using namespace Logging;
+#undef ERROR
 
 namespace CryptoNote {
 //---------------------------------------------------------------------------
-Checkpoints::Checkpoints(Logging::ILogger &log) : logger(log, "checkpoints") {
+Checkpoints::Checkpoints(Logging::ILogger &log, bool is_deep_reorg_allowed) : logger(log, "checkpoints"), m_is_deep_reorg_allowed(is_deep_reorg_allowed) {
+  
 }
 //---------------------------------------------------------------------------
 bool Checkpoints::add_checkpoint(uint32_t height, const std::string &hash_str) {
@@ -58,7 +59,6 @@ bool Checkpoints::add_checkpoint(uint32_t height, const std::string &hash_str) {
     return false;
   }
 
-  m_points[height] = h;
   return true;
 }
 //---------------------------------------------------------------------------
@@ -74,8 +74,8 @@ bool Checkpoints::load_checkpoints_from_file(const std::string& fileName) {
 	while (std::getline(file, indexString, ','), std::getline(file, hash)) {
 		try {
 			height = std::stoi(indexString);
-		} catch (const std::invalid_argument &)	{
-			logger(ERROR, BRIGHT_RED) << "Invalid checkpoint file format - "
+		} catch (const std::invalid_argument &) {
+			logger(Logging::ERROR, BRIGHT_RED) << "Invalid checkpoint file format - "
 				<< "could not parse height as a number";
 			return false;
 		}
@@ -100,7 +100,7 @@ bool Checkpoints::check_block(uint32_t  height, const Crypto::Hash &h,
     return true;
 
   if (it->second == h) {
-    logger(Logging::INFO, Logging::BRIGHT_GREEN)
+    logger(Logging::DEBUGGING, Logging::GREEN)
       << "CHECKPOINT PASSED FOR HEIGHT " << height << " " << h;
     return true;
   } else {
@@ -121,7 +121,7 @@ bool Checkpoints::is_alternative_block_allowed(uint32_t  blockchain_height,
   if (0 == block_height)
     return false;
 
-  if (block_height < blockchain_height - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW
+  if (!m_is_deep_reorg_allowed && block_height < blockchain_height - CryptoNote::parameters::CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW
     && !is_in_checkpoint_zone(block_height)) {
     logger(Logging::WARNING, Logging::WHITE) << "An attempt of too deep reorganization: "
       << blockchain_height - block_height << ", BLOCK REJECTED";
@@ -156,7 +156,7 @@ bool Checkpoints::load_checkpoints_from_dns()
   std::vector<std::string>records;
   bool res = true;
   auto start = std::chrono::steady_clock::now();
-  logger(Logging::INFO) << "Fetching DNS checkpoint records from " << domain;
+  logger(Logging::DEBUGGING) << "Fetching DNS checkpoint records from " << domain;
 
   try {
     auto future = std::async(std::launch::async, [this, &res, &domain, &records]() {
@@ -165,7 +165,7 @@ bool Checkpoints::load_checkpoints_from_dns()
 
     std::future_status status;
 
-    status = future.wait_for(std::chrono::milliseconds(500));
+    status = future.wait_for(std::chrono::milliseconds(200));
 
     if (status == std::future_status::timeout) {
       logger(Logging::DEBUGGING) << "Timeout lookup DNS checkpoint records from " << domain;
@@ -193,7 +193,7 @@ bool Checkpoints::load_checkpoints_from_dns()
     char c;
     if (del == std::string::npos) continue;
     if ((ss.fail() || ss.get(c)) || !Common::podFromHex(hash_str, hash)) {
-      logger(DEBUGGING) << "Failed to parse DNS checkpoint record: " << record;
+      logger(Logging::DEBUGGING) << "Failed to parse DNS checkpoint record: " << record;
       continue;
     }
 

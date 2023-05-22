@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "CryptoNoteFormatUtils.h"
 
@@ -499,6 +499,20 @@ bool get_block_hashing_blob(const Block& b, BinaryArray& ba) {
   return true;
 }
 
+bool get_signed_block_hashing_blob(const Block& b, BinaryArray& ba) {
+  if (!toBinaryArray(static_cast<const BlockHeader&>(b), ba)) {
+    return false;
+  }
+
+  Hash treeRootHash = get_tx_tree_hash(b);
+  ba.insert(ba.end(), treeRootHash.data, treeRootHash.data + 32);
+  auto transactionCount = asBinaryArray(Tools::get_varint_data(b.transactionHashes.size() + 1));
+  ba.insert(ba.end(), transactionCount.begin(), transactionCount.end());
+  BinaryArray sig = Common::asBinaryArray(std::string((const char *)&b.signature, sizeof(Crypto::Signature)));
+  ba.insert(ba.end(), sig.begin(), sig.end());
+  return true;
+}
+
 bool get_parent_block_hashing_blob(const Block& b, BinaryArray& blob) {
   auto serializer = makeParentBlockSerializer(b, true, true);
   return toBinaryArray(serializer, blob);
@@ -551,7 +565,13 @@ bool get_block_longhash(cn_context &context, const Block& b, Hash& res) {
   } else {
     return false;
   }
-  cn_slow_hash(context, bd.data(), bd.size(), res);
+  if (b.majorVersion <= BLOCK_MAJOR_VERSION_5) {	//todo check version
+    cn_slow_hash(context, bd.data(), bd.size(), res);
+  }
+  else {
+    return false;
+  }
+  
   return true;
 }
 

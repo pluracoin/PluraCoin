@@ -1,19 +1,19 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 //
-// This file is part of Bytecoin.
+// This file is part of Plura.
 //
-// Bytecoin is free software: you can redistribute it and/or modify
+// Plura is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// Bytecoin is distributed in the hope that it will be useful,
+// Plura is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
+// along with Plura.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "WalletService.h"
 
@@ -1253,7 +1253,7 @@ std::error_code WalletService::sendTransaction(const SendTransaction::Request& r
     if (!request.changeAddress.empty()) {
       validateAddresses({ request.changeAddress }, currency, logger);
     }
-	validateMixin(request.anonymity, currency, logger);
+    validateMixin(request.anonymity, currency, logger);
 
     CryptoNote::TransactionParameters sendParams;
     if (!request.paymentId.empty()) {
@@ -1269,10 +1269,10 @@ std::error_code WalletService::sendTransaction(const SendTransaction::Request& r
     sendParams.unlockTimestamp = request.unlockTime;
     sendParams.changeDestination = request.changeAddress;
 
-	Crypto::SecretKey tx_key;
+    Crypto::SecretKey tx_key;
     size_t transactionId = wallet.transfer(sendParams, tx_key);
     transactionHash = Common::podToHex(wallet.getTransaction(transactionId).hash);
-	transactionSecretKey = Common::podToHex(tx_key);
+    transactionSecretKey = Common::podToHex(tx_key);
 
     logger(Logging::DEBUGGING) << "Transaction " << transactionHash << " has been sent";
   } catch (std::system_error& x) {
