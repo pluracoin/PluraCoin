@@ -519,11 +519,11 @@ namespace CryptoNote {
 		uint64_t low, high;
 		low = mul128(totalWork, m_difficultyTarget, &high);
 		if (high != 0 || low + timeSpan - 1 < low) {
-            logger(Logging::INFO, BRIGHT_MAGENTA) << "Calculating next diff V1: 0";
+            logger(Logging::TRACE, BRIGHT_MAGENTA) << "Calculating next diff V1: 0";
 			return 0;
 		}
 
-        logger(Logging::INFO, BRIGHT_MAGENTA) << "Calculating next diff V2: " << ((low + timeSpan - 1) / timeSpan);
+        logger(Logging::TRACE, BRIGHT_MAGENTA) << "Calculating next diff V2: " << ((low + timeSpan - 1) / timeSpan);
         return (low + timeSpan - 1) / timeSpan;
 	}
 
@@ -579,7 +579,7 @@ namespace CryptoNote {
 
         //if(isTestnet()) nextDiffZ = 5000;
 
-        logger(Logging::INFO, BRIGHT_MAGENTA) << "Calculating next diff V2: " << nextDiffZ;
+        logger(Logging::TRACE, BRIGHT_MAGENTA) << "Calculating next diff V2: " << nextDiffZ;
 
 		return nextDiffZ;
 	}
@@ -643,7 +643,7 @@ namespace CryptoNote {
 
         //if(isTestnet()) next_difficulty = 5000;
 
-        logger(Logging::INFO, BRIGHT_MAGENTA) << "Calculating next diff V3: " << next_difficulty;
+        logger(Logging::TRACE, BRIGHT_MAGENTA) << "Calculating next diff V3: " << next_difficulty;
 
 		return next_difficulty;
 	}
@@ -707,7 +707,7 @@ namespace CryptoNote {
 
         //if(isTestnet()) next_difficulty = 5000;
 
-        logger(Logging::INFO, BRIGHT_MAGENTA) << "Calculating next diff V4: " << next_difficulty;
+        logger(Logging::TRACE, BRIGHT_MAGENTA) << "Calculating next diff V4: " << next_difficulty;
 
 		return next_difficulty;
 	}
@@ -774,7 +774,7 @@ namespace CryptoNote {
 
         //if(isTestnet()) next_D = 5000;
 
-        logger(Logging::INFO, BRIGHT_MAGENTA) << "Calculating next diff V5: " << next_D;
+        logger(Logging::TRACE, BRIGHT_MAGENTA) << "Calculating next diff V5: " << next_D;
 
 		return next_D;
 	}
@@ -843,7 +843,7 @@ namespace CryptoNote {
 
     //if(isTestnet()) next_D = 5000;
 
-    logger(Logging::INFO, BRIGHT_MAGENTA) << "Calculating next diff V6: " << next_D;
+    logger(Logging::TRACE, BRIGHT_MAGENTA) << "Calculating next diff V6: " << next_D;
 
     return next_D;
   }

@@ -493,14 +493,10 @@ bool Core::get_block_template(Block& b, const AccountKeys& acc, difficulty_type&
     LockedBlockchainStorage blockchainLock(m_blockchain);
     height = m_blockchain.getCurrentBlockchainHeight();
     b = boost::value_initialized<Block>();
-    b.majorVersion = m_blockchain.getBlockMajorVersionForHeight(height);
-    logger(ERROR, BRIGHT_RED) << "b.majorversion" << b.majorVersion;
-    b.previousBlockHash = get_tail_id();
-    logger(ERROR, BRIGHT_RED) << "b.previousblockchash" << b.previousBlockHash;
-    b.timestamp = time(nullptr);
-    logger(ERROR, BRIGHT_RED) << "b.timestamp" << b.timestamp;
-    diffic = m_blockchain.getDifficultyForNextBlock(b.previousBlockHash);
-    logger(ERROR, BRIGHT_RED) << "diffic" << diffic;
+    b.majorVersion = m_blockchain.getBlockMajorVersionForHeight(height);    
+    b.previousBlockHash = get_tail_id();    
+    b.timestamp = time(nullptr);    
+    diffic = m_blockchain.getDifficultyForNextBlock(b.previousBlockHash);    
     if (!(diffic)) {
       logger(ERROR, BRIGHT_RED) << "difficulty overhead.";
       return false;
